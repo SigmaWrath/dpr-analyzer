@@ -16,10 +16,8 @@ class Die:
             n = self.num_sides
             d_avg = (2*n+1)*(n+1)/(6*n)
             if self.mode == 'D':
-                print("Disadvantage")
                 return d_avg
             elif self.mode == 'A':
-                print("Advantage")
                 return (n+1)-d_avg
             else:
                 raise Exception("Unexpected Die Mode")
