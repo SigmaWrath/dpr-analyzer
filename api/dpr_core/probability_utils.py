@@ -5,8 +5,7 @@ def add_dists(dist1, dist2):
 
     # Add a distribution and a constant
     if dist2.__class__.__name__ == 'int':
-        for i in dist1.keys():
-            result[i+dist2] = dist1[i]
+        return {key + dist2 : value for key, value in dist1.items()}
     # Add two distributions
     else:
         for j in dist1.keys():

@@ -13,21 +13,30 @@ class MyTestCase(unittest.TestCase):
         attack = DiceFormula("Ad20+2d4+5")
         self.assertEqual(Die('A20').avg()+2*2.5+5, attack.avg_roll())
 
-    def test_add_dists_1(self):
+    def test_add_dists_1(self): #TODO: confirm expected value
         d1 = Die(4).distribution()
         d2 = Die(6).distribution()
         result = add_dists(d1, d2)
         print(result)
         self.assertAlmostEqual(1, sum(result.values()), delta=0.0001)
 
-    def test_add_dists_2(self):
+    def test_add_dists_2(self): #TODO: confirm expected value
         d1 = Die(4).distribution()
         d2 = 3
         result = add_dists(d1, d2)
         print(result)
         self.assertAlmostEqual(1, sum(result.values()), delta=0.0001)
 
+    def test_frequencies_1(self):
+        damage = DiceFormula("2d4+5")
+        theoretical = {7:1/16, 8:2/16, 9:3/16, 10:4/16, 11:3/16, 12:2/16, 13:1/16}
+        result = damage.frequencies()
+        self.assertAlmostEqual(1, sum(result.values()), delta=0.0001)
+        self.assertEqual(theoretical, result)
 
+    def test_graph(self):
+        damage = DiceFormula("Ad20+1d4+3")
+        damage.graph()
 
 if __name__ == '__main__':
     unittest.main()

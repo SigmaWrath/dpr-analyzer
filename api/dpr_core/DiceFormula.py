@@ -1,6 +1,9 @@
 import re
 from collections import defaultdict
+import matplotlib.pyplot as plt
 from .Die import Die
+from .probability_utils import add_dists
+
 
 class DiceFormula:
 
@@ -53,8 +56,28 @@ class DiceFormula:
 
         return avg_result+self.constant
 
-    #TODO: frequencies()
+    # Return the probability distribution for the results of dice formula
+    def frequencies(self):
 
+        # Flatten out the dice dict into an array
+        dice = []
+        for die in self.dice_dict.keys():
+            for i in range(self.dice_dict[die]):
+                dice.append(die)
 
-    #TODO: probabilities()
-    #TODO: graph()
+        # Add all the dice distributions together
+        result = Die(dice[0]).distribution()
+        for i in range(len(dice)-1):
+            result = add_dists(result, Die(dice[i+1]).distribution())
+
+        # Add the constant to the distribution and return the result
+        return add_dists(result, self.constant)
+
+    # Graph the probability distribution of the dice formula
+    def graph(self, color='#1f77b4'):
+        frequencies = self.frequencies()
+        plt.bar(frequencies.keys(), [i*100 for i in frequencies.values()], color=color, edgecolor='black')
+        plt.xlabel(self.formula)
+        plt.ylabel('Percentage (%)')
+        plt.title('Statistical Distribution of ' + self.formula)
+        plt.show()
