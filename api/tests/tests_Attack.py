@@ -1,7 +1,5 @@
 import unittest
 
-from manim import there_and_back
-
 from dpr_core.Attack import Attack
 
 

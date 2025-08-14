@@ -1,4 +1,3 @@
-from .DiceFormula import DiceFormula
 from .probability_utils import add_dists
 import matplotlib.pyplot as plt
 
