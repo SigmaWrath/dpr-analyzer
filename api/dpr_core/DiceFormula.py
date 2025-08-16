@@ -58,6 +58,9 @@ class DiceFormula:
 
     # Return the probability distribution for the results of dice formula
     def frequencies(self):
+        # Handle the case for no dice in the formula
+        if len(self.dice_dict)==0:
+            return {self.constant:1.0}
 
         # Flatten out the dice dict into an array
         dice = []
