@@ -55,7 +55,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25)
+        Adora.analyze(10, 25, graphs='cs', testAC=16)
 
     def test_Adora_20_prep(self):
         Adora = Analyzer("Adora Lvl 20") # Love Paladin 12/Zealot Barbarian 4/Lore Bard 4
@@ -68,7 +68,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25)
+        Adora.analyze(10, 25, graphs='cs', testAC=20)
 
     def test_Adora_20_prep_fighter(self):
         Adora = Analyzer("Adora Lvl 20") # Love Paladin 12/Zealot Barbarian 4/Fighter 2/Bard 2
@@ -84,8 +84,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_2, 1)
         Adora.add(attack_3, 2)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25)
-        #Adora.analyze(10, 25, graphs=True, testAC=20, showMisses=True)
+        Adora.analyze(10, 25, graphs='cs', testAC=20)
 
 if __name__ == '__main__':
     unittest.main()
