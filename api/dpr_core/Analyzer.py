@@ -126,7 +126,7 @@ class Analyzer:
         plt.show()
 
     # Mega-method to display customizable analysis to the user
-    def analyze(self, minAC, maxAC, graphs=False, testAC=15, showMisses=True):
+    def analyze(self, minAC=10, maxAC=25, graphs=False, testAC=15, showMisses=True):
         print("\n\n============================ANALYSIS BELOW======================================")
         print("Max damage: " + str(self.max_damage()))
         AC_range = range(minAC, maxAC+1)

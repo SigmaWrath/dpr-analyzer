@@ -60,9 +60,9 @@ class MyTestCase(unittest.TestCase):
     def test_Adora_8_prep_devotion(self):
         Adora = Analyzer("Adora Lvl 8") # Devotion Paladin 5/Zealot Barbarian 3
         attack_1 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Zealot, Divine Smite 2, Reckless Attack, Sacred Weapon",
-                          damagef="2d6+4+1+3+1d10+1d4+2+1d6+1+3d8", toHitf="Ad20+3+4+3")
+                          damagef="2d6+1+4+3+1d10+1d4+2+1d6+1+3d8", toHitf="Ad20+3+4+3")
         attack_2 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Divine Smite 2, Reckless Attack, Sacred Weapon",
-                          damagef="2d6+4+1+3+1d10+1d4+2+3d8", toHitf="Ad20+3+4+3")
+                          damagef="2d6+1+4+3+1d10+1d4+2+3d8", toHitf="Ad20+3+4+3")
         steed_attack = Attack("Otherworldly Slam", damagef="1d8+2", toHitf="1d20+3+3")
 
         Adora.add(attack_1, 1)
@@ -75,7 +75,7 @@ class MyTestCase(unittest.TestCase):
         attack_1 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Galvanized, Rage, Zealot, Divine Smite 4, Radiant Strikes, Charger, Boon of Combat Prowess",
                           damagef="2d6+6+1+6+1d10+1d4+2+2+1d6+2+5d8+1d8+1d8", toHitf="30")
         attack_2 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Galvanized, Rage, Divine Smite 4, Radiant Strikes, Reckless Attack",
-                          damagef="2d6+6+1+6+1d10+1d4+2+2+5d8+1d8", toHitf="Ad20+6+7")
+                          damagef="2d6+6+1+6+1d10+1d4+2+2+5d8+1d8", toHitf="Ad20+6+6")
         steed_attack = Attack("Otherworldly Slam w/ Aura of Love Reaction", damagef="1d8+4", toHitf="1d20+3+6+3")
 
         Adora.add(attack_1, 1)
@@ -88,10 +88,10 @@ class MyTestCase(unittest.TestCase):
         attack_1 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Galvanized, Rage, Zealot, Divine Smite 4, Radiant Strikes, Boon of Combat Prowess",
                           damagef="2d6+6+1+6+1d10+1d4+2+2+1d6+2+5d8+1d8", toHitf="30")
         attack_2 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Galvanized, Rage, Divine Smite 4, Radiant Strikes, Reckless Attack",
-                          damagef="2d6+6+1+6+1d10+1d4+2+2+5d8+1d8", toHitf="Ad20+6+7")
+                          damagef="2d6+6+1+6+1d10+1d4+2+2+5d8+1d8", toHitf="Ad20+6+6")
         attack_3 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Galvanized, Rage, Divine Smite 3, Radiant Strikes, Reckless Attack",
-                          damagef="2d6+6+1+6+1d10+1d4+2+2+4d8+1d8", toHitf="Ad20+6+7")
-        steed_attack = Attack("Otherworldly Slam", damagef="1d8+4", toHitf="1d20+3+6")
+                          damagef="2d6+6+1+6+1d10+1d4+2+2+4d8+1d8", toHitf="Ad20+6+6")
+        steed_attack = Attack("Otherworldly Slam", damagef="1d8+3", toHitf="1d20+3+6")
 
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
@@ -104,16 +104,29 @@ class MyTestCase(unittest.TestCase):
         attack_1 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Zealot, Divine Smite 4, Radiant Strikes, Boon of Combat Prowess",
                           damagef="2d6+6+1+6+1d10+1d4+2+1d6+2+5d8+1d8", toHitf="30")
         attack_2 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Divine Smite 4, Radiant Strikes, Reckless Attack, Sacred Weapon",
-                          damagef="2d6+6+1+6+1d10+1d4+2+5d8+1d8", toHitf="Ad20+6+7+3")
+                          damagef="2d6+6+1+6+1d10+1d4+2+5d8+1d8", toHitf="Ad20+6+6+3")
         attack_3 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Divine Smite 3, Radiant Strikes, Reckless Attack, Sacred Weapon",
-                          damagef="2d6+6+1+6+1d10+1d4+2+4d8+1d8", toHitf="Ad20+6+7+3")
-        steed_attack = Attack("Otherworldly Slam", damagef="1d8+4", toHitf="1d20+3+6")
+                          damagef="2d6+6+1+6+1d10+1d4+2+4d8+1d8", toHitf="Ad20+6+6+3")
+        steed_attack = Attack("Otherworldly Slam", damagef="1d8+3", toHitf="1d20+3+6")
 
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(attack_3, 2)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25, graphs='cs', testAC=20)
+        Adora.analyze(10, 25, graphs='cs, 3d', testAC=20)
+
+    def test_Adora_20_prep_devotion_swords(self):
+        Adora = Analyzer("Adora Lvl 20") # Devotion Paladin 12/Zealot Barbarian 4/Swords Bard 4 —— [see 'Playable' in Notes app]
+        attack_1 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Zealot, Flourish, Divine Smite 4, Radiant Strikes, Boon of Combat Prowess",
+                          damagef="2d6+6+1+6+1d10+1d4+2+1d6+2+1d6+5d8+1d8", toHitf="30")
+        attack_2 = Attack("Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Divine Smite 4, Radiant Strikes, Reckless Attack, Sacred Weapon",
+                          damagef="2d6+6+1+6+1d10+1d4+2+5d8+1d8", toHitf="Ad20+6+6+4")
+        steed_attack = Attack("Otherworldly Slam", damagef="1d8+4", toHitf="1d20+4+6")
+
+        Adora.add(attack_1, 1)
+        Adora.add(attack_2, 1)
+        Adora.add(steed_attack, 1)
+        Adora.analyze(10, 25, graphs=False, testAC=20)
 
 if __name__ == '__main__':
     unittest.main()
