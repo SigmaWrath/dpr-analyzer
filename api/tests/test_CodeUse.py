@@ -11,8 +11,12 @@ class MyTestCase(unittest.TestCase):
                                  damagef="1d6+5+1d4", toHitf="1d20+6+5+1d4")
         scimitar_explosive = Attack("Action Surge Scimitar w/ Colossus, Boldness",
                                     damagef="1d6+5+1d4+2d8", toHitf="1d20+6+5+1d4")
+        alchemist_fire = Attack("Alchemist Fire Initial+Burning",
+                                damagef="2d10+1d6", toHitf="1d20+6+5+1d4")
+
         Alchemist.add(scimitar_buffed, 5)
         Alchemist.add(scimitar_explosive, 5)
+        Alchemist.add(alchemist_fire, 0) # Can replace 4 scimitar_buffed attacks with alchemist_fire
         Alchemist.analyze(10, 25, graphs=True, testAC=20)
 
     def test_Iskah(self):
@@ -42,7 +46,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25)
+        Adora.analyze(10, 25, graphs='3d')
 
     def test_Adora_8_spont_love(self):
         Adora = Analyzer("Adora Lvl 8")
@@ -68,7 +72,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25)
+        Adora.analyze()
 
     def test_Adora_20_prep_love(self):
         Adora = Analyzer("Adora Lvl 20") # Love Paladin 12/Zealot Barbarian 4/Lore Bard 4
@@ -127,6 +131,17 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
         Adora.analyze(10, 25, graphs=False, testAC=20)
+
+    def test_Jadhu_2(self):
+        Jadhu2 = Analyzer("Jadhu Level 2 Best")
+
+        eldritch_blast = Attack(name="Eldritch+Agonizing", damagef="1d10+3", toHitf="1d20+5")
+        witch_bolt = Attack(name="Witch Bolt 2nd", damagef="1d12", toHitf="1d20+5")
+
+        Jadhu2.add(eldritch_blast, 1)
+        Jadhu2.add(witch_bolt, 1)
+
+        Jadhu2.analyze(graphs=True)
 
 if __name__ == '__main__':
     unittest.main()

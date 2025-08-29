@@ -68,9 +68,11 @@ class Analyzer:
 
     # Graph the damage distribution of the combined attacks against a given AC
     def graph_cross_section(self, AC, color='#1f77b4'):
+        plt.style.use('dark_background')
         probabilities = self.simulate(AC)
+        plt.style.use('dark_background')
         plt.bar(probabilities.keys(), [x * 100 for x in probabilities.values()],
-                color=color, edgecolor='black')
+                color=color, edgecolor='none')
         plt.xlabel('Damage')
         plt.ylabel('Percentage (%)')
         plt.title('Damage Distribution at AC ' + str(AC) + ' for \'' + self.name + '\'')
@@ -78,19 +80,21 @@ class Analyzer:
 
     # Graph the average damage of the combined attacks against a given range of ACs
     def graph_avg_damage(self, minAC, maxAC, color='#1f77b4'):
+        plt.style.use('dark_background')
         AC_range = range(minAC, maxAC+1)
         damage_dict = {}
         for AC in AC_range:
             damage_dict[AC] = self.get_avg(AC)
-        plt.bar(damage_dict.keys(), damage_dict.values(), color=color, edgecolor='black')
+
+        plt.bar(damage_dict.keys(), damage_dict.values(), color=color, edgecolor='none')
         plt.xlabel('AC')
         plt.ylabel('Damage')
         plt.title('Avg Damage per AC for \'' + self.name + '\'')
-
         plt.show()
 
     # Return a 3D graph: X/Y/Z -> AC/Damage/Probability
-    def graph_3d(self, minAC, maxAC, showMisses=False):
+    def graph_3d(self, minAC, maxAC, showMisses=False, color='#1f77b4'):
+        plt.style.use('dark_background')
 
         # Set up X-axis, aka AC
         AC_axis = list(range(minAC, maxAC+1))
@@ -120,14 +124,14 @@ class Analyzer:
         ax1 = fig.add_subplot(121, projection='3d')
         dx=dy=1
         z_floor=0
-        ax1.bar3d(x_AC, y_Damage, z_floor, dx, dy, z_Probabilities, shade=True)
+        ax1.bar3d(x_AC, y_Damage, z_floor, dx, dy, z_Probabilities, shade=True, color=color)
         ax1.set_title('Distribution of Damage Dealt per AC for \'' + self.name + '\'')
 
         plt.show()
 
     # Mega-method to display customizable analysis to the user
     def analyze(self, minAC=10, maxAC=25, graphs=False, testAC=15, showMisses=True):
-        print("\n\n============================ANALYSIS BELOW======================================")
+        print("\n\n=============================== ANALYSIS BELOW =================================")
         print("Max damage: " + str(self.max_damage()))
         AC_range = range(minAC, maxAC+1)
         for AC in AC_range:
