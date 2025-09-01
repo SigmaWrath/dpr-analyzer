@@ -5,6 +5,7 @@ import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, Toolti
 import { CheckOutlined, DeleteOutlined, EditOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import './App.css'
 const {Title} = Typography
+import axios from 'axios';
 
 /*
 function App() {
@@ -134,10 +135,9 @@ const ATTACKS2 = [
 *   1. Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
           After that's done, we can set a quasi-maximally generous character limit on top text 
             (assuming all widest character, how many characters before weird shit happens?)
-        No narrower to 415 px, no shorter than 530
+        No narrower than 415 px, no shorter than 530. We can narrow to 355 if we set a minWidth for the saveswitch
     2. Saving throws: 2) Half damage on successful save
-    3. Refactor project and commit to GitHub
-    4. PHASE 4: Configue dpr_core and api for integration
+    4. PHASE 4: Configue App, dpr_core and api for integration
     5. PHASE 5: GRAPHS
 */
 
@@ -151,6 +151,9 @@ const ATTACKS2 = [
 
 // Idea: Ability to save config from website as a JSON file? And then reupload later. 
 // UI would be a float button that opens up a drawer for this.
+
+// For v2.5 (somewhat far down the road): https://plotly.com/javascript/histograms/
+    // 3D graphs would be a surface plot: https://plotly.com/javascript/3d-surface-plots/
 
 function SaveSwitch({
   switchState, 
@@ -680,8 +683,41 @@ function AttackDisplay({
   )
 }
 
-function AnalyzerConfiguration() {
+function AnalyzerConfiguration({
+  buildTitle,
+  dprAttacks
+}) {
+  const [minAC, setMinAC] = useState('10')
+  const [maxAC, setMaxAC] = useState('25')
+  const [testAC, setTestAC] = useState('15')
+  const [graphColor, setGraphColor] = useState('#1f77b4')
   const [hideMisses, setHideMisses] = useState(true)
+
+  const payload = () => {
+    return {
+      title : buildTitle,
+      attacks : dprAttacks,
+      acs : {
+        min : minAC,
+        max : maxAC,
+        test : testAC
+      },
+      theme : graphColor,
+      isHideMisses : hideMisses
+    }
+  }
+
+  const handleSubmit = async () => {
+    try {
+      console.log("Before sending: ", payload())
+      const response = await axios.post('http://localhost:5001/api/averages', payload());
+      console.log('Got back:', response.data);
+    } catch (err) {
+      //setError('Error submitting data.');
+      console.error('Error:', err);
+      // Handle different types of errors (e.g., network error, server error)
+    }
+  };
 
   const toggleMisses = () => {
     setHideMisses(!hideMisses)
@@ -690,15 +726,30 @@ function AnalyzerConfiguration() {
   return (
     <div class="attack-input">
       <Flex gap={8} style={{width: "28vw"}}>
-        <Input addonBefore="Min AC: " defaultValue={10}  />
-        <Input addonBefore="Max AC: " defaultValue={25}  />
-        <Input addonBefore="Test AC: " defaultValue={15} />
+        <Input 
+            addonBefore="Min AC: " 
+            value={minAC}  
+            onChange={ (e)=> setMinAC(e.target.value) }
+          />
+        <Input 
+            addonBefore="Max AC: " 
+            value={maxAC}
+            onChange={ (e)=> setMaxAC(e.target.value) }
+          />
+        <Input 
+            addonBefore="Test AC: " 
+            value={testAC}  
+            onChange={ (e)=> setTestAC(e.target.value) }
+          />
       </Flex>
       <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
         <ColorPicker
           style={{marginTop: 12}}
-          defaultValue="#1f77b4"
+          value={graphColor}
           showText={color => <span>Graph Color</span>}
+          onChange={c => {
+            setGraphColor(c.toHexString());
+          }}
         />
         <Checkbox onChange={toggleMisses}>Hide Misses (3D)</Checkbox>
         <Button 
@@ -706,6 +757,7 @@ function AnalyzerConfiguration() {
           variant='solid' 
           icon={<CheckOutlined />}
           style={{paddingLeft: 15, paddingRight: 15, marginTop: 6, marginLeft: 0}} 
+          onClick={handleSubmit}
         >Analyze</Button>
       </Space>
       
@@ -771,7 +823,9 @@ function App() {
                   onDprChange={setAttacks}/>
               </div>
               <div style={{paddingTop: 25}}>
-                <AnalyzerConfiguration />
+                <AnalyzerConfiguration 
+                    buildTitle={buildTitle}
+                    dprAttacks={dprAttacks}/>
               </div>
           </div>
           <div class="item4">
