@@ -1,0 +1,9 @@
+# Core dependencies for DPR Analyzer
+Flask==3.1.0
+flask-cors==5.0.1
+gunicorn==23.0.0
+matplotlib==3.9.2
+numpy==1.26.4
+
+# Development and testing dependencies
+mypy==1.15.0
