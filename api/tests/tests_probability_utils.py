@@ -1,6 +1,10 @@
 import unittest
+
+from dpr_core.Attack import Attack
+from dpr_core.DiceFormula import DiceFormula
 from dpr_core.Die import Die
-from dpr_core.probability_utils import add_dists
+from dpr_core.probability_utils import add_dists, graph_dist, halve_dist
+
 
 class MyTestCase(unittest.TestCase):
 
@@ -17,6 +21,13 @@ class MyTestCase(unittest.TestCase):
         result = add_dists(d1, d2)
         print(result)
         self.assertAlmostEqual(1, sum(result.values()), delta=0.0001)
+
+    def test_graph_dists(self):
+        fireball = DiceFormula("8d6").frequencies()
+
+        graph_dist(fireball, "Fireball Damage, Failed Save")
+        graph_dist(halve_dist(fireball), "Fireball Damage, Saved")
+
 
 if __name__ == '__main__':
     unittest.main()

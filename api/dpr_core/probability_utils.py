@@ -1,5 +1,6 @@
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import math
 
 def add_dists(dist1, dist2):
     result = defaultdict(int)
@@ -21,3 +22,11 @@ def graph_dist(frequencies: dict[int:float], x_label: str):
     plt.ylabel('Percentage (%)')
     plt.title('Statistical Distribution of ' + x_label)
     plt.show()
+
+# For taking have damage on a successful save
+def halve_dist(dist: dict[int:float]):
+    result = defaultdict(int)
+    for i in dist.keys():
+        new_key = math.floor(i/2)
+        result[new_key] += dist[i]
+    return result
