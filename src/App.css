@@ -1,0 +1,132 @@
+#root {
+  max-width: 1500px; /* make sure this isn't doing weird shit on large viewports */
+  margin: 0 auto;
+  padding: 0rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: calc(100vw - 2rem);
+  height: calc(100vh - 2rem);
+  gap: 10px;
+  background-color: #000000; /* rgb(108, 23, 158) OR rgb(4, 141, 153) OR rgb(15, 147, 159)*/
+  padding: 1rem;
+}
+
+.grid-container > div {
+  background-color: #141414; /* #010414 -> 141414 */ 
+  text-align: center;
+  padding-left: 10px;
+  font-size: 20px;
+}
+
+.item1 {
+  border-radius: 10px;
+}
+
+.item2 {
+  border-radius: 10px;
+}
+
+.item3 {
+  grid-column:2;
+  grid-row: 1 / span 2;
+  border-radius: 10px;
+}
+
+.item4 {
+  overflow: scroll;
+  border-radius: 10px;
+}
+
+.item5 {
+  border-radius: 10px;
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-around;
+}
+
+.panel-header {
+  color: rgb(138, 138, 138);
+}
+
+.attack-input {
+  text-align: left;
+  margin-left: 1.3vw;
+}
+
+.attack-card {
+  text-align: left;
+  margin-left: 1.3vw;
+}
+
+.formula {
+  white-space: normal;
+}
+
+.formula-label {
+  color: #4f4f4f;
+}
+
+.formula-value {
+  white-space: normal; /* allow wrapping */
+  word-break: break-word;
+}
+
+.attack-display {
+  overflow-y: scroll;
+}
+
+.analyzer-title {
+  text-align: center;
+  margin-left: 0;
+  margin-right: 1.3vw;
+}
+
+.card-container {
+  max-height: calc(100vh - 468px);
+}
+
+
+
