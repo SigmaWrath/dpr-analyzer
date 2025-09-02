@@ -130,7 +130,7 @@ class MyTestCase(unittest.TestCase):
         Adora.add(attack_1, 1)
         Adora.add(attack_2, 1)
         Adora.add(steed_attack, 1)
-        Adora.analyze(10, 25, graphs=False, testAC=20)
+        Adora.analyze(10, 25, graphs='avg', testAC=20)
 
     def test_Jadhu_2(self):
         Jadhu2 = Analyzer("Jadhu Level 2 Best")

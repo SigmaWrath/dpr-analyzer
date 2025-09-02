@@ -26,7 +26,7 @@ def get_average_damages():
         avg = build.get_avg(AC)
         result[AC] = round(avg, 1)
     
-    return jsonify({'response':'Message arrived!', 'result' : result})
+    return jsonify({'result' : result})
 
 if __name__ == '__main__':
     app.run(debug=True, host='localhost', port=5001)

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
-import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, Tooltip, Typography, ColorPicker, Checkbox } from "antd";
+import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, Tooltip, Typography, ColorPicker, Checkbox, Col, Row} from "antd";
 import { CheckOutlined, DeleteOutlined, EditOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import './App.css'
-const {Title} = Typography
+const {Title, Text} = Typography
 import axios from 'axios';
+import Plot from 'react-plotly.js'
 
 /*
 function App() {
@@ -63,20 +64,22 @@ function App() {
   )
 }*/
 
+/*<ConfigProvider
+      theme={{
+        components: {
+          Button: {
+            colorPrimary: "#018689ff",       // switch "on" color
+            colorPrimaryHover: "#07a7aaff", // hover color
+            colorPrimaryActive: "#03c2c5ff", // active (pressed) state
+            colorPrimaryBorder: "#07edf0ff"
+          },
+        },
+      }}
+    >
+    </ConfigProvider>*/
+
 
 const ATTACKS = [
-  {
-    name: "Eldritch Blast w/ Agonizing Blast Invocation",
-    damagef: "1d10+3",
-    hitf: "1d20+5",
-    times: 1,
-  },
-  {
-    name: "Witch Bolt as Turn 2 Bonus Action",
-    damagef: "1d12",
-    hitf: "1d20+5",
-    times: 1,
-  },
   {
     name: "Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Zealot, Flourish, Divine Smite 4, Radiant Strikes, Boon of Combat Prowess", 
     damagef: "2d6+6+1+6+1d10+1d4+2+1d6+2+1d6+5d8+1d8", 
@@ -132,13 +135,20 @@ const ATTACKS2 = [
 ]
 
 /* TODO: 
-*   1. Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
+*   1. Saving throws: 2) Half damage on successful save. AND: general saving throw work on Attack class
+    3. PHASE 5: GRAPHS
+
+    4. PHASE 6: UI Polishing
+        Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
           After that's done, we can set a quasi-maximally generous character limit on top text 
             (assuming all widest character, how many characters before weird shit happens?)
-        No narrower than 415 px, no shorter than 530. We can narrow to 355 if we set a minWidth for the saveswitch
-    2. Saving throws: 2) Half damage on successful save
-    4. PHASE 4: Configue App, dpr_core and api for integration
-    5. PHASE 5: GRAPHS
+          No narrower than 415 px, no shorter than 530. We can narrow to 355 if we set a minWidth for the saveswitch
+
+        Character limit (two) for AC boxes?
+        Fullscreen requirement? Say you can't use on phone
+
+    5. PHASE 7: Tours and help
+    6. PHASE 8: Deployment
 */
 
 // Perfectionism:
@@ -158,16 +168,10 @@ const ATTACKS2 = [
 function SaveSwitch({
   switchState, 
   onSwitchStateChange, 
-  attackValue,
-  onAttackValueChange
 }) {
 
   const toggle = () => {
     onSwitchStateChange(!switchState)
-    /*if (attackValue != "") {
-      onAttackValueChange("")
-    }*/
-
   }
 
   return (
@@ -268,21 +272,7 @@ function AttackButton({
   }
 
   return (
-    /*<ConfigProvider
-      theme={{
-        components: {
-          Button: {
-            colorPrimary: "#018689ff",       // switch "on" color
-            colorPrimaryHover: "#07a7aaff", // hover color
-            colorPrimaryActive: "#03c2c5ff", // active (pressed) state
-            colorPrimaryBorder: "#07edf0ff"
-          },
-        },
-      }}
-    >
-    </ConfigProvider>*/
     <Button disabled={submitDisabled} style={{ marginTop: 6}} type='primary' onClick={addAttack}>+ Add Attack</Button>
-    
   )
 }
 
@@ -373,9 +363,6 @@ function AttackInput({
     const diceRoll = /^\d+d\d+$/
     const advDiceRoll = /^Ad\d+$/
     const dadvDiceRoll = /^Dd\d+$/
-    /*const diceRollUnstable = /^\d+d$/
-    const advDiceRollUnstable = /^Ad$/
-    const dadvDiceRollUnstable = /^Dd$/*/
     const modifier = /^\d+$/
     const validTerms = [diceRoll, advDiceRoll, dadvDiceRoll, modifier]
 
@@ -669,10 +656,7 @@ function AttackDisplay({
       {{
         overflowY: 'auto',
         paddingTop: 10,
-        paddingBottom: 10,
-        // backgroundColor:'#191919',
-        // border: '0px solid #272727ff', // visible border
-        // borderRadius: 8,
+        paddingBottom: 10
       }}
     >
       <Flex className='attack-display' vertical gap={"small"}>
@@ -685,7 +669,10 @@ function AttackDisplay({
 
 function AnalyzerConfiguration({
   buildTitle,
-  dprAttacks
+  dprAttacks,
+  setLastTestAC,
+  setLastGraphColor,
+  setResultAvgs
 }) {
   const [minAC, setMinAC] = useState('10')
   const [maxAC, setMaxAC] = useState('25')
@@ -708,14 +695,15 @@ function AnalyzerConfiguration({
   }
 
   const handleSubmit = async () => {
+    setLastTestAC(testAC)
+    setLastGraphColor(graphColor)
+
     try {
-      console.log("Before sending: ", payload())
       const response = await axios.post('http://localhost:5001/api/averages', payload());
       console.log('Got back:', response.data);
+      setResultAvgs(response.data.result)
     } catch (err) {
-      //setError('Error submitting data.');
       console.error('Error:', err);
-      // Handle different types of errors (e.g., network error, server error)
     }
   };
 
@@ -765,6 +753,106 @@ function AnalyzerConfiguration({
   )
 }
 
+function AverageLine({ 
+  lastTestAC, 
+  lastGraphColor, 
+  lineCore 
+}) {
+  const ac = lineCore[0]
+  const damage = lineCore[1]
+
+  return (
+    <div>
+      <Text style={{fontSize: '22px'}}>
+        { ac==Number(lastTestAC) 
+            ? <div><span className='formula-label'>AC {ac}: </span> <span style={{color: lastGraphColor}}> {damage} </span></div> 
+            : <div><span className='formula-label'>AC {ac}: </span> {damage}</div> }
+      </Text>
+    </div>
+  )
+}
+
+function AveragesDisplay({
+  lastTestAC,
+  lastGraphColor,
+  resultAvgs
+}) {
+
+  const avgs = Object.entries(resultAvgs)
+  
+  const column1 = []
+  for (let i=0; i<(avgs.length/2); i++) {
+    column1.push(
+      <AverageLine 
+        lastTestAC={lastTestAC}
+        lastGraphColor={lastGraphColor}
+        lineCore={avgs[i]}
+      />
+    )
+  }
+
+  const column2 = []
+  for (let i=(avgs.length/2); i<avgs.length; i++) {
+    column2.push(
+      <AverageLine
+        lastTestAC={lastTestAC}
+        lastGraphColor={lastGraphColor}
+        lineCore={avgs[i]}
+      />
+    )
+  }
+
+  return (
+    <div>
+      <Row gutter={24} style={{marginLeft: 0}}>
+        <Col span={11}>
+          {column1}
+        </Col>
+        <Col span={11}>
+          {column2}
+        </Col>
+      </Row>
+    </div>
+  )
+}
+
+function AveragesGraph({ lastGraphColor, resultAvgs }) {
+  const plotRef = useRef(null);
+
+  useEffect(() => {
+    const acValues = Object.keys(resultAvgs); //
+    const avgDamage = Object.values(resultAvgs); //
+
+    const trace = {
+      x: acValues,
+      y: avgDamage,
+      type: "bar",
+      marker: {
+        color: lastGraphColor,
+        line: { width: 1.5, color: "black" }
+      }
+    };
+
+    const layout = {
+      title: {text : "Average Damage per AC", yanchor: "center", y: 0.96, pad: { t: 5 }}, //"Avg Damage per AC for '" + buildTitle + "'"
+      plot_bgcolor : "#141414",
+      paper_bgcolor : "#141414",
+      font: { color : "white" },
+      xaxis: { title : {text : "AC", standoff : 8}, tickmode: "linear" }, //fix w/ docs
+      yaxis: { title : {text : "Average Damage"} }, //fix w/ docs
+      autosize : true,
+      margin: { l: 45, r: 25, t: 50, b: 130 }
+    };
+
+    const config = { responsive: true };
+
+    Plotly.newPlot(plotRef.current, [trace], layout, config);
+  }, [resultAvgs]);
+
+  return <div ref={plotRef}  />
+
+}
+
 function App() {
   const [buildTitle, setBuildTitle] = useState("New Build Round 1")
   const [dprAttacks, setAttacks] = useState([])
@@ -775,6 +863,11 @@ function App() {
   const [numValue, setNumValue] = useState("")
   const [switchState, setSwitchState] = useState(false)
 
+  
+  const [lastTestAC, setLastTestAC] = useState('15')
+  const [lastGraphColor, setLastGraphColor] = useState('#1f77b4')
+  const [resultAvgs, setResultAvgs] = useState([])
+
   return (
     <>
       <ConfigProvider theme=
@@ -783,7 +876,11 @@ function App() {
         }}
       >
         <div class="grid-container">
-          <div class="item1">1</div>
+          <div class="item1">
+            <AveragesGraph 
+              lastGraphColor={lastGraphColor}
+              resultAvgs={resultAvgs}/>
+          </div>
           <div class="item2">2</div>
 
           <div class="item3">
@@ -825,14 +922,23 @@ function App() {
               <div style={{paddingTop: 25}}>
                 <AnalyzerConfiguration 
                     buildTitle={buildTitle}
-                    dprAttacks={dprAttacks}/>
+                    dprAttacks={dprAttacks}
+                    setLastTestAC={setLastTestAC}
+                    setLastGraphColor={setLastGraphColor}
+                    setResultAvgs={setResultAvgs}
+                />
               </div>
           </div>
           <div class="item4">
             4
           </div>
-
-          <div class="item5">5</div> 
+          <div class="item5">
+            <Title level={4} style={{color: '#5f5f5f'}}>Average Damage per AC</Title>
+            <AveragesDisplay
+              lastTestAC={lastTestAC}
+              lastGraphColor={lastGraphColor}
+              resultAvgs={resultAvgs}/>
+          </div> 
         </div>
       </ConfigProvider>
     </>

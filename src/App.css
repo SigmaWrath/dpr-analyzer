@@ -44,7 +44,7 @@
 .grid-container {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: calc(50vh - 19px) calc(50vh - 19px);
   width: calc(100vw - 2rem);
   height: calc(100vh - 2rem);
   gap: 10px;
@@ -61,6 +61,7 @@
 
 .item1 {
   border-radius: 10px;
+  overflow: hidden; /* scroll, but how to limit amount of bottom space that shows up?*/
 }
 
 .item2 {
@@ -71,6 +72,7 @@
   grid-column:2;
   grid-row: 1 / span 2;
   border-radius: 10px;
+  overflow: hidden;
 }
 
 .item4 {
@@ -80,6 +82,7 @@
 
 .item5 {
   border-radius: 10px;
+  overflow: scroll;
 }
 
 .flex-container {
@@ -126,6 +129,10 @@
 
 .card-container {
   max-height: calc(100vh - 468px);
+}
+
+.test-ac {
+  color: #03c2c5ff
 }
 
 
