@@ -30,3 +30,15 @@ def halve_dist(dist: dict[int:float]):
         new_key = math.floor(i/2)
         result[new_key] += dist[i]
     return result
+
+def superposition_dists(dist1: dict[int:float], dist2: dict[int:float]):
+    result = defaultdict(int)
+    set1 = set(dist1.keys())
+    set2 = set(dist2.keys())
+    possible_rolls = set1.union(set2)
+    for roll in possible_rolls:
+        if roll in dist1:
+            result[roll] += dist1[roll]
+        if roll in dist2:
+            result[roll] += dist2[roll]
+    return result

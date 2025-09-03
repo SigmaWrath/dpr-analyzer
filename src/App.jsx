@@ -8,62 +8,6 @@ const {Title, Text} = Typography
 import axios from 'axios';
 import Plot from 'react-plotly.js'
 
-/*
-function App() {
-  const [count, setCount] = useState(0)
-  const [currentTime, setCurrentTime] = useState(0);
-
-  useEffect(() => {
-    const fetchTime = () => {
-      fetch('/api/time')
-        .then(res => res.json())
-        .then(data => {
-          setCurrentTime(data.time);
-        });
-    };
-
-    fetchTime(); // fetch immediately
-    const interval = setInterval(fetchTime, 1000); // every second
-
-    return () => clearInterval(interval); // cleanup on unmount
-  }, []);
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>The current time is {new Date(currentTime * 1000).toLocaleString()}.</p>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      
-      <h3> Average Damage per AC</h3>
-      <p>
-        AC 10: 155 <br  />
-        AC 11: 150 <br  />
-        AC 12: 145 <br  />
-        AC 13: 140 <br  />
-      </p>
-      
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}*/
-
 /*<ConfigProvider
       theme={{
         components: {
