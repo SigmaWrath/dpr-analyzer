@@ -79,10 +79,10 @@ const ATTACKS2 = [
 ]
 
 /* TODO: 
-*   1. Saving throws: 2) Half damage on successful save. AND: general saving throw work on Attack class
-    3. PHASE 5: GRAPHS
+*   1. Saving throws: 2) Half damage on successful save.
+    2. PHASE 5: GRAPHS
 
-    4. PHASE 6: UI Polishing
+    3. PHASE 6: UI Polishing
         Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
           After that's done, we can set a quasi-maximally generous character limit on top text 
             (assuming all widest character, how many characters before weird shit happens?)
@@ -91,8 +91,16 @@ const ATTACKS2 = [
         Character limit (two) for AC boxes?
         Fullscreen requirement? Say you can't use on phone
 
-    5. PHASE 7: Tours and help
-    6. PHASE 8: Deployment
+        Definitely: an ability to let you zoom into the graphs, or temporarily make them full screen.
+          Try to hide the Plotly bar as well.
+
+        Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
+          Probabilities in %?
+
+    4. PHASE 7: Lock in deployment strategy
+    5. PHASE 8: Saving configurations
+    5. PHASE 9: Tours, help, documentation, credits
+    6. PHASE 10: Deployment
 */
 
 // Perfectionism:
@@ -616,12 +624,13 @@ function AnalyzerConfiguration({
   dprAttacks,
   setLastTestAC,
   setLastGraphColor,
-  setResultAvgs
+  setResultAvgs,
+  setCrossSection
 }) {
   const [minAC, setMinAC] = useState('10')
   const [maxAC, setMaxAC] = useState('25')
   const [testAC, setTestAC] = useState('15')
-  const [graphColor, setGraphColor] = useState('#1f77b4')
+  const [graphColor, setGraphColor] = useState('#21b1cef2')
   const [hideMisses, setHideMisses] = useState(true)
 
   const payload = () => {
@@ -641,11 +650,13 @@ function AnalyzerConfiguration({
   const handleSubmit = async () => {
     setLastTestAC(testAC)
     setLastGraphColor(graphColor)
-
     try {
-      const response = await axios.post('http://localhost:5001/api/averages', payload());
-      console.log('Got back:', response.data);
-      setResultAvgs(response.data.result)
+      const response1 = await axios.post('http://localhost:5001/api/averages', payload());
+      setResultAvgs(response1.data.result)
+
+      const response2 = await axios.post('http://localhost:5001/api/cross-section', payload());
+      console.log('Got back Cross Section', response2.data);
+      setCrossSection(response2.data.result)
     } catch (err) {
       console.error('Error:', err);
     }
@@ -778,12 +789,12 @@ function AveragesGraph({ lastGraphColor, resultAvgs }) {
     };
 
     const layout = {
-      title: {text : "Average Damage per AC", yanchor: "center", y: 0.96, pad: { t: 5 }}, //"Avg Damage per AC for '" + buildTitle + "'"
+      title: {text : "Average Damage per AC", yanchor: "center", y: 0.96, pad: { t: 5 }}, 
       plot_bgcolor : "#141414",
       paper_bgcolor : "#141414",
       font: { color : "white" },
-      xaxis: { title : {text : "AC", standoff : 8}, tickmode: "linear" }, //fix w/ docs
-      yaxis: { title : {text : "Average Damage"} }, //fix w/ docs
+      xaxis: { title : {text : "AC", standoff : 8}, tickmode: "linear" }, 
+      yaxis: { title : {text : "Average Damage"} }, 
       autosize : true,
       margin: { l: 45, r: 25, t: 50, b: 130 }
     };
@@ -795,6 +806,163 @@ function AveragesGraph({ lastGraphColor, resultAvgs }) {
 
   return <div ref={plotRef}  />
 
+}
+
+function CrossSectionGraph({ lastTestAC, lastGraphColor, crossSection }) {
+  const crossRef = useRef(null);
+
+  useEffect(() => {
+    const damageValues = Object.keys(crossSection);
+    const probabilities = Object.values(crossSection); 
+
+    const trace = {
+      x: damageValues,
+      y: probabilities,
+      type: "bar",
+      marker: {
+        color: lastGraphColor,
+        line: { width: 1.5, color: "black" }
+      }
+    };
+
+    const layout = {
+      title: {text : "Damage Distribution for AC " + lastTestAC, yanchor: "center", y: 0.96, pad: { t: 5 }},
+      plot_bgcolor : "#141414",
+      paper_bgcolor : "#141414",
+      font: { color : "white" },
+      xaxis: { title : {text : "Damage", standoff : 8}, /*tickmode: "linear"*/ }, 
+      yaxis: { title : {text : "Probability"} }, 
+      autosize : true,
+      margin: { l: 45, r: 25, t: 50, b: 130 }
+    };
+
+    const config = { responsive: true };
+
+    Plotly.newPlot(crossRef.current, [trace], layout, config);
+  }, [crossSection]);
+
+  return <div ref={crossRef}  />
+}
+
+function ThreeDGraph({ lastGraphColor }) {
+  const threeRef = useRef(null)
+  const [camera, setCamera] = useState(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateSize = () => {
+      const w = window.innerWidth * 0.34 - 19; // equivalent to calc(50vw - 19px)
+      const h = window.innerHeight * 0.5 - 19; // for example
+      setSize({ width: w, height: h });
+    };
+
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  useEffect(() => {
+    const z1 = [
+      [8.83,8.89,8.81,8.87,8.9,8.87],
+      [8.89,8.94,8.85,8.94,8.96,8.92],
+      [8.84,8.9,8.82,8.92,8.93,8.91],
+      [8.79,8.85,8.79,8.9,8.94,8.92],
+      [8.79,8.88,8.81,8.9,8.95,8.92],
+      [8.8,8.82,8.78,8.91,8.94,8.92],
+      [8.75,8.78,8.77,8.91,8.95,8.92],
+      [8.8,8.8,8.77,8.91,8.95,8.94],
+      [8.74,8.81,8.76,8.93,8.98,8.99],
+      [8.89,8.99,8.92,9.1,9.13,9.11],
+      [8.97,8.97,8.91,9.09,9.11,9.11],
+      [9.04,9.08,9.05,9.25,9.28,9.27],
+      [9,9.01,9,9.2,9.23,9.2],
+      [8.99,8.99,8.98,9.18,9.2,9.19],
+      [8.93,8.97,8.97,9.18,9.2,9.18]
+    ];
+
+    const surfacecolor = z1.map((row, i) =>
+      row.map((zVal, j) => {
+        const xVal = j;        // x inferred from column index
+        // Relationship: f(x, z)
+        return xVal * zVal;    // Example function
+      })
+    ); // customize color mapping function here
+
+    const z_data = {
+      z: z1, 
+      type: 'surface', 
+      hovertemplate: "Damage: %{x}<br>"+"AC: %{y}<br>"+"Probability: %{z}<br><extra></extra>",
+      surfacecolor: surfacecolor,
+      colorscale: [[0, lastGraphColor], [1, lastGraphColor]], //"#ffffffc5"
+      showscale: false
+    }; // enable color gradient here
+
+    var layout = {
+      title: {
+        text: 'Damage Distributions for ACs 10 to 25',
+        yanchor: "center", 
+        y: 0.96, 
+        pad: { t: 5 }
+      },
+      plot_bgcolor : "#141414",
+      paper_bgcolor : "#141414",
+      font: { color : "white" },
+      scene: {
+        camera: 
+          {
+            center: { x: 0.01, y: 0.14, z: -0.26 },
+            eye: {x: -1.51, y: -1.25, z: 0.55}
+          },
+        xaxis: { 
+          title: {text : "Damage"},
+          tickfont: { color: "white" },
+          gridcolor: "white",
+          zerolinecolor: "white",
+          //spikecolor: "white",
+         },
+        yaxis: { 
+          title: {text : "AC"},
+          gridcolor: "white",
+          zerolinecolor: "white",
+          //spikecolor: "white",
+       },
+        zaxis: { 
+          title: {text : "Probability"},
+          gridcolor: "white",
+          zerolinecolor: "white",
+          //spikecolor: "white",
+         },
+      },
+      autosize: false,
+      width: size.width,
+      height: size.height,
+      margin: {
+        l: 10,
+        r: 10,
+        b: 15,
+        t: 35,
+      }
+    };
+
+    Plotly.newPlot(threeRef.current, [z_data], layout);
+
+    const handleRelayout = (eventData) => {
+      if (eventData["scene.camera"]) {
+        console.log("Updated camera:", eventData["scene.camera"]);
+        setCamera(eventData["scene.camera"]); // update state
+      }
+    };
+
+    threeRef.current.on("plotly_relayout", handleRelayout);
+
+    return () => {
+      if (threeRef.current) {
+        threeRef.current.removeAllListeners("plotly_relayout");
+      }
+    };
+  }, [size, lastGraphColor]);
+  
+  return <div ref={threeRef} />
 }
 
 function App() {
@@ -809,8 +977,9 @@ function App() {
 
   
   const [lastTestAC, setLastTestAC] = useState('15')
-  const [lastGraphColor, setLastGraphColor] = useState('#1f77b4')
+  const [lastGraphColor, setLastGraphColor] = useState('#21b1cef2')
   const [resultAvgs, setResultAvgs] = useState([])
+  const [crossSection, setCrossSection] = useState([])
 
   return (
     <>
@@ -821,12 +990,16 @@ function App() {
       >
         <div class="grid-container">
           <div class="item1">
-            <AveragesGraph 
+            <CrossSectionGraph 
+              lastTestAC={lastTestAC}
               lastGraphColor={lastGraphColor}
-              resultAvgs={resultAvgs}/>
+              crossSection={crossSection}/>
           </div>
-          <div class="item2">2</div>
-
+          <div class="item2">
+            <ThreeDGraph 
+              lastGraphColor={lastGraphColor}
+            />
+          </div>
           <div class="item3">
               <div class="analyzer-title" style={{width: "28vw", marginLeft: "2.1vw", marginTop: "25px"}}>
                   <Title 
@@ -870,11 +1043,14 @@ function App() {
                     setLastTestAC={setLastTestAC}
                     setLastGraphColor={setLastGraphColor}
                     setResultAvgs={setResultAvgs}
+                    setCrossSection={setCrossSection}
                 />
               </div>
           </div>
           <div class="item4">
-            4
+            <AveragesGraph 
+              lastGraphColor={lastGraphColor}
+              resultAvgs={resultAvgs}/>
           </div>
           <div class="item5">
             <Title level={4} style={{color: '#5f5f5f'}}>Average Damage per AC</Title>
