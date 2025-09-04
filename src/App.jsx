@@ -8,6 +8,11 @@ const {Title, Text} = Typography
 import axios from 'axios';
 import Plot from 'react-plotly.js'
 
+function range(start, end, step = 1) {
+  const length = Math.floor((end - start) / step) + 1;
+  return Array.from({ length }, (_, i) => start + (i * step));
+}
+
 /*<ConfigProvider
       theme={{
         components: {
@@ -81,6 +86,7 @@ const ATTACKS2 = [
 /* TODO: 
 *   1. Saving throws: 2) Half damage on successful save.
     2. PHASE 5: GRAPHS
+          hideMisses. Better color mapping? lastMinAC 
 
     3. PHASE 6: UI Polishing
         Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
@@ -96,6 +102,9 @@ const ATTACKS2 = [
 
         Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
           Probabilities in %?
+
+        Disable the analyze button if no attacks. Show errors if maxAC is not > minAC. 
+          Disable the analyze button in that case as well.
 
     4. PHASE 7: Lock in deployment strategy
     5. PHASE 8: Saving configurations
@@ -113,9 +122,6 @@ const ATTACKS2 = [
 
 // Idea: Ability to save config from website as a JSON file? And then reupload later. 
 // UI would be a float button that opens up a drawer for this.
-
-// For v2.5 (somewhat far down the road): https://plotly.com/javascript/histograms/
-    // 3D graphs would be a surface plot: https://plotly.com/javascript/3d-surface-plots/
 
 function SaveSwitch({
   switchState, 
@@ -625,7 +631,8 @@ function AnalyzerConfiguration({
   setLastTestAC,
   setLastGraphColor,
   setResultAvgs,
-  setCrossSection
+  setCrossSection,
+  setThreeD
 }) {
   const [minAC, setMinAC] = useState('10')
   const [maxAC, setMaxAC] = useState('25')
@@ -655,8 +662,11 @@ function AnalyzerConfiguration({
       setResultAvgs(response1.data.result)
 
       const response2 = await axios.post('http://localhost:5001/api/cross-section', payload());
-      console.log('Got back Cross Section', response2.data);
       setCrossSection(response2.data.result)
+
+      const response3 = await axios.post('http://localhost:5001/api/three-d', payload());
+      setThreeD(response3.data.result)
+      console.log(response3.data.result)
     } catch (err) {
       console.error('Error:', err);
     }
@@ -784,7 +794,7 @@ function AveragesGraph({ lastGraphColor, resultAvgs }) {
       type: "bar",
       marker: {
         color: lastGraphColor,
-        line: { width: 1.5, color: "black" }
+        line: { width: 1.5, color: "transparent" }
       }
     };
 
@@ -821,7 +831,7 @@ function CrossSectionGraph({ lastTestAC, lastGraphColor, crossSection }) {
       type: "bar",
       marker: {
         color: lastGraphColor,
-        line: { width: 1.5, color: "black" }
+        line: { width: 1.5, color: "transparent" }
       }
     };
 
@@ -844,11 +854,12 @@ function CrossSectionGraph({ lastTestAC, lastGraphColor, crossSection }) {
   return <div ref={crossRef}  />
 }
 
-function ThreeDGraph({ lastGraphColor }) {
+function ThreeDGraph({ lastGraphColor, threeD }) {
   const threeRef = useRef(null)
   const [camera, setCamera] = useState(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
+  // Dynamic resizing
   useEffect(() => {
     const updateSize = () => {
       const w = window.innerWidth * 0.34 - 19; // equivalent to calc(50vw - 19px)
@@ -861,24 +872,18 @@ function ThreeDGraph({ lastGraphColor }) {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  // Main surface plot
   useEffect(() => {
-    const z1 = [
-      [8.83,8.89,8.81,8.87,8.9,8.87],
-      [8.89,8.94,8.85,8.94,8.96,8.92],
-      [8.84,8.9,8.82,8.92,8.93,8.91],
-      [8.79,8.85,8.79,8.9,8.94,8.92],
-      [8.79,8.88,8.81,8.9,8.95,8.92],
-      [8.8,8.82,8.78,8.91,8.94,8.92],
-      [8.75,8.78,8.77,8.91,8.95,8.92],
-      [8.8,8.8,8.77,8.91,8.95,8.94],
-      [8.74,8.81,8.76,8.93,8.98,8.99],
-      [8.89,8.99,8.92,9.1,9.13,9.11],
-      [8.97,8.97,8.91,9.09,9.11,9.11],
-      [9.04,9.08,9.05,9.25,9.28,9.27],
-      [9,9.01,9,9.2,9.23,9.2],
-      [8.99,8.99,8.98,9.18,9.2,9.19],
-      [8.93,8.97,8.97,9.18,9.2,9.18]
-    ];
+    console.log(threeD == null)
+    const y1 = ( threeD != null ? Object.keys(threeD).map(Number) : [0])
+    const x1 = ( threeD != null ? Object.keys(threeD[y1[10]]).map(Number) : [0]) // change y1[10] to y1[lastMinAC] ASAP
+    const z1 = ( threeD != null 
+      ? y1.map(yVal => {
+          const row = threeD[yVal];
+          return x1.map(xVal => row[xVal] ?? null); // null for missing values
+        })
+      : [[0]] 
+    )
 
     const surfacecolor = z1.map((row, i) =>
       row.map((zVal, j) => {
@@ -889,11 +894,13 @@ function ThreeDGraph({ lastGraphColor }) {
     ); // customize color mapping function here
 
     const z_data = {
+      x: x1,
+      y: y1,
       z: z1, 
       type: 'surface', 
       hovertemplate: "Damage: %{x}<br>"+"AC: %{y}<br>"+"Probability: %{z}<br><extra></extra>",
       surfacecolor: surfacecolor,
-      colorscale: [[0, lastGraphColor], [1, lastGraphColor]], //"#ffffffc5"
+      colorscale: [[0, "#bcf4ffff"], [1, lastGraphColor]], //"#ffffff"
       showscale: false
     }; // enable color gradient here
 
@@ -904,14 +911,14 @@ function ThreeDGraph({ lastGraphColor }) {
         y: 0.96, 
         pad: { t: 5 }
       },
-      plot_bgcolor : "#141414",
+      plot_bgcolor : "#a7a7a7ff", // change this back?
       paper_bgcolor : "#141414",
       font: { color : "white" },
       scene: {
         camera: 
           {
-            center: { x: 0.01, y: 0.14, z: -0.26 },
-            eye: {x: -1.51, y: -1.25, z: 0.55}
+            center: { x: 0.08, y: 0.01, z: -0.16 },
+            eye: {x: 1.4, y: 1.34, z: 0.66}
           },
         xaxis: { 
           title: {text : "Damage"},
@@ -960,7 +967,7 @@ function ThreeDGraph({ lastGraphColor }) {
         threeRef.current.removeAllListeners("plotly_relayout");
       }
     };
-  }, [size, lastGraphColor]);
+  }, [size, lastGraphColor, threeD]);
   
   return <div ref={threeRef} />
 }
@@ -980,6 +987,7 @@ function App() {
   const [lastGraphColor, setLastGraphColor] = useState('#21b1cef2')
   const [resultAvgs, setResultAvgs] = useState([])
   const [crossSection, setCrossSection] = useState([])
+  const [threeD, setThreeD] = useState(null)
 
   return (
     <>
@@ -998,6 +1006,7 @@ function App() {
           <div class="item2">
             <ThreeDGraph 
               lastGraphColor={lastGraphColor}
+              threeD={threeD}
             />
           </div>
           <div class="item3">
@@ -1044,6 +1053,7 @@ function App() {
                     setLastGraphColor={setLastGraphColor}
                     setResultAvgs={setResultAvgs}
                     setCrossSection={setCrossSection}
+                    setThreeD={setThreeD}
                 />
               </div>
           </div>
