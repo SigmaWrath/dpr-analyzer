@@ -1,17 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, Tooltip, Typography, ColorPicker, Checkbox, Col, Row} from "antd";
+import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex,
+            Tooltip, Typography, ColorPicker, Checkbox, Col, Row, Select} from "antd";
 import { CheckOutlined, DeleteOutlined, EditOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import './App.css'
 const {Title, Text} = Typography
 import axios from 'axios';
-import Plot from 'react-plotly.js'
-
-function range(start, end, step = 1) {
-  const length = Math.floor((end - start) / step) + 1;
-  return Array.from({ length }, (_, i) => start + (i * step));
-}
+import 'react-plotly.js'
 
 /*<ConfigProvider
       theme={{
@@ -27,66 +21,11 @@ function range(start, end, step = 1) {
     >
     </ConfigProvider>*/
 
-
-const ATTACKS = [
-  {
-    name: "Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Zealot, Flourish, Divine Smite 4, Radiant Strikes, Boon of Combat Prowess", 
-    damagef: "2d6+6+1+6+1d10+1d4+2+1d6+2+1d6+5d8+1d8", 
-    hitf: "30", 
-    times: 1
-  },
-  {
-    name: "Greatsword GWF+GWM, Fire's Burn, Divine Favor, Rage, Divine Smite 4, Radiant Strikes, Reckless Attack, Sacred Weapon", 
-    damagef: "2d6+6+1+6+1d10+1d4+2+5d8+1d8", 
-    hitf: "Ad20+6+6+4", 
-    times: 1
-  }
-]
-
-const ATTACKS2 = [
-  {
-    name: "Witch Bolt",
-    damagef: "2d12",
-    hitf: "1d20+5",
-    times: 1
-  },
-  {
-    name: "Unarmed Strike (Action + Flurry of Blows Bonus Action)",
-    damagef: "1d6+3",
-    hitf: "1d20+5",
-    times: 3
-  },
-  {
-    name: "Chromatic Orb",
-    damagef: "3d8",
-    hitf: "1d20+5",
-    times: 1
-  },
-  {
-    name: "Heavy Crossbow + Ranger's Quarry",
-    damagef: "1d10+3+1d4",
-    hitf: "1d20+7",
-    times: 1
-  },
-  {
-    name: "Scimitar Nick (Bonus Action)",
-    damagef: "1d6",
-    hitf: "1d20+5",
-    times: 1
-  },
-  {
-    name: "Scimitar (Action + Action Surge)",
-    damagef: "1d6+3",
-    hitf: "1d20+5",
-    times: 2
-  },
-
-]
-
 /* TODO: 
 *   1. Saving throws: 2) Half damage on successful save.
     2. PHASE 5: GRAPHS
-          hideMisses. Better color mapping? lastMinAC 
+        Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
+          Probabilities in %?
 
     3. PHASE 6: UI Polishing
         Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
@@ -94,22 +33,55 @@ const ATTACKS2 = [
             (assuming all widest character, how many characters before weird shit happens?)
           No narrower than 415 px, no shorter than 530. We can narrow to 355 if we set a minWidth for the saveswitch
 
-        Character limit (two) for AC boxes?
-        Fullscreen requirement? Say you can't use on phone
+        Say you can't use on phone
+
+        Make graph positioning robust to browser.
 
         Definitely: an ability to let you zoom into the graphs, or temporarily make them full screen.
           Try to hide the Plotly bar as well.
 
-        Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
-          Probabilities in %?
-
-        Disable the analyze button if no attacks. Show errors if maxAC is not > minAC. 
+        Character limit (two) for AC boxes?
+        Disable the analyze button if no attacks. Show errors if maxAC is not > minAC.
           Disable the analyze button in that case as well.
 
-    4. PHASE 7: Lock in deployment strategy
-    5. PHASE 8: Saving configurations
-    5. PHASE 9: Tours, help, documentation, credits
-    6. PHASE 10: Deployment
+        DiceFormulas in backend are allowed to have things like d20 instead of 1d20. 
+          Allow this in frontend as well, but augmenting validFormulas in AttackInput
+
+    4. PHASE 7: Lock in deployment strategy (COMPLETE!!)
+          Convert python to JS
+          Allow saves into an S3 w/ Cogito login
+
+    5. PHASE 8: Convert dpr_core into JS
+          Before starting, touch up the python code to make sure it's well architected and streamlined.
+          Push to git, then clone into a new branch.
+          Go file by file:
+            1. Die.py
+            2. probability_utils.py
+            3. DiceFormula.py
+            4. Attack.py
+            5. Analyzer.py
+    6. PHASE 9: Add remaining formula features to JS dpr_core
+          Final new features before wrap-up:
+            1. Elven accuracy
+            2. Crit/fail
+            3. Number of rounds in Analyzer, so it can averaged over a few rounds of combat
+    7. PHASE 10: Saving configurations
+        Cogito -> S3. IAM 
+    8. PHASE 11: Tours, help, documentation, credits
+    9. PHASE 12: Deployment
+*/
+
+/* Future iterations:
+      1. Advanced color customization, accessible through floating button (open up drawer? or modal)
+      2. Formulas like A2d6 (for savage attacks) -- which is different from 2Ad6 (which we should also facilitate)
+      3. Champion crits, like d20c10%
+      4. Reroll on x numbers, like d20r1
+      5. Great weapon fighting -type things, like 2d6f3 ("f" for "floor")
+      6. Brainstorm: a way to analyze 1/round things. Find total chance of hit per round??
+          Maybe instead of num rounds, fractional attacks, using smth similar to halve_dist().
+          Then we could do a special rider type that is referentially added to other attacks?
+
+      More advanced formulas can be enabled with an "order of operations" for the effects
 */
 
 // Perfectionism:
@@ -156,6 +128,7 @@ function AttackButton({
   attackName,
   damageValue,
   attackValue,
+  saveType,
   numValue,
   switchState,
   damageError,
@@ -181,7 +154,8 @@ function AttackButton({
 
     dprAttacks.forEach(attack => {
       if (attack.name==attackName.trim() && attack.damagef==damageValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '')
-        && ((attack.hitf==attackValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '') && !switchState) || (attack.hitf=="SAVE" && switchState)) ) {
+        && ((attack.hitf==attackValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '') && !switchState) || 
+              ((attack.hitf==saveType) && switchState)) ) {
         isUnique = false;
         onDprChange(
           dprAttacks.map(item =>
@@ -193,7 +167,7 @@ function AttackButton({
       }
       else if (attack.name==attackName.trim()) {
         isUnique=false;
-        //alert("Attacks with different properties must have unique names.")
+        // Attacks with different properties must have unique names
       }
       else {}
     })
@@ -205,7 +179,7 @@ function AttackButton({
             {
               name: attackName.trim(),
               damagef: damageValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, ''),
-              hitf: "SAVE",
+              hitf: saveType,
               times: numValue
             },
             ...dprAttacks 
@@ -238,6 +212,7 @@ function ClearButton({
   onAttackNameChange,
   onDamgeValueChange,
   onAttackValueChange,
+  setSaveOption,
   onNumValueChange,
   onSwitchStateChange
 }) {
@@ -245,6 +220,7 @@ function ClearButton({
     onAttackNameChange("")
     onDamgeValueChange("")
     onAttackValueChange("")
+    setSaveOption("SAVE")
     onNumValueChange("")
     onSwitchStateChange(false)
   }
@@ -266,17 +242,20 @@ function AttackInput({
   attackName,
   damageValue,
   attackValue,
+  saveOption,
   numValue,
   switchState,
   dprAttacks, 
   setAttackName,
   setDamageValue,
   setAttackValue,
+  setSaveOption,
   setNumValue,
   setSwitchState,
   onDprChange 
 }) {
-  
+
+  const [saveType, setSaveType] = useState('SAVE')
 
   const [nameError, setNameError] = useState('')
   const [damageError, setDamageError] = useState('')
@@ -289,7 +268,8 @@ function AttackInput({
     var isError = false;
     dprAttacks.forEach( attack => {
       if ( attack.name==attackName.trim() && !( attack.damagef==damageValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '')
-            && ((attack.hitf==attackValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '') && !switchState) || (attack.hitf=="SAVE" && switchState)) ) ) {
+            && ((attack.hitf==attackValue.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, '') && !switchState) || 
+                ((attack.hitf==saveType) && switchState)) ) ) {
         setNameError('error')
         isError = true
       }
@@ -312,7 +292,7 @@ function AttackInput({
       setToHitError('')
     }
 
-  }, [damageValue, attackValue, attackName, switchState, dprAttacks])
+  }, [damageValue, attackValue, saveType, attackName, switchState, dprAttacks])
 
   // Function to check a whether a string is a valid DiceFormula
   const checkFormulaPattern = (pattern) => {
@@ -355,37 +335,38 @@ function AttackInput({
     <div className="attack-input">
       <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
         <Space direction="vertical" size="small">
-            <Tooltip 
-              placement='top'
-              title={ nameError 
-                ? <div style={{ textAlign: "center" }}>Attack name already in use</div> 
-                : null
-              }
-            >
-                <Input 
-                  style={{ width : "28vw" }} 
-                  placeholder="Attack name"
-                  value={attackName}
-                  status={nameError}
-                  onChange={ (e)=> setAttackName(e.target.value) }
-                />
-            </Tooltip>
-            <Tooltip 
-              placement='top'
-              title={ damageError 
-                ? <div style={{ textAlign: "center" }}>Invalid dice formula</div> 
-                : null
-              }
-            >
+          <Tooltip 
+            placement='top'
+            title={ nameError 
+              ? <div style={{ textAlign: "center" }}>Attack name already in use</div> 
+              : null
+            }
+          >
               <Input 
                 style={{ width : "28vw" }} 
-                placeholder="Damage formula"
-                value={damageValue}
-                status={damageError}
-                onChange={ (e)=> setDamageValue(e.target.value/*.replace(/[^dDA+0-9 ]/g, "")*/)}
+                placeholder="Attack name"
+                value={attackName}
+                status={nameError}
+                onChange={ (e)=> setAttackName(e.target.value) }
               />
-            </Tooltip>
-            <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
+          </Tooltip>
+          <Tooltip 
+            placement='top'
+            title={ damageError 
+              ? <div style={{ textAlign: "center" }}>Invalid dice formula</div> 
+              : null
+            }
+          >
+            <Input 
+              style={{ width : "28vw" }} 
+              placeholder="Damage formula"
+              value={damageValue}
+              status={damageError}
+              onChange={ (e)=> setDamageValue(e.target.value/*.replace(/[^dDA+0-9 ]/g, "")*/)}
+            />
+          </Tooltip>
+          <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
+            { !switchState && (
               <Tooltip 
                 placement='top'
                 title={ toHitError 
@@ -401,41 +382,53 @@ function AttackInput({
                   onChange={(e) => setAttackValue(e.target.value/*.replace(/[^dDA+0-9 ]/g, "")*/)}
                   disabled={switchState}/>
               </Tooltip>
-              
-              <SaveSwitch 
-                switchState={switchState} 
-                onSwitchStateChange={setSwitchState}
-                attackValue={attackValue}
-                onAttackValueChange={setAttackValue} />
-            </Space>
-            <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
-              <Input 
-              placeholder="# of attacks"
-              value={numValue}
-              onChange={ (e)=>setNumValue(e.target.value.replace(/\D/g, '')) } />
-              
-            </Space>
+            )}
+
+            { switchState && (
+              <Select
+                variant='filled'
+                style={{ width: '18vw' }}
+                value={saveOption}
+                onChange={value => {
+                  setSaveType(value)
+                  setSaveOption(value)
+                }}
+                options={[
+                  { value: 'SAVE', label: 'No damage on success' },
+                  { value: 'SAVE HALF', label: 'Half damage on success' },
+                ]}
+              />
+            )}
+            <SaveSwitch 
+              switchState={switchState} 
+              onSwitchStateChange={setSwitchState}
+              attackValue={attackValue}
+              onAttackValueChange={setAttackValue} />
+          </Space>
+          <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
+            <Input 
+            placeholder="# of attacks"
+            value={numValue}
+            onChange={ (e)=>setNumValue(e.target.value.replace(/\D/g, '')) } />
+          </Space>
           <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
             <AttackButton
               attackName={attackName}
               damageValue={damageValue}
               attackValue={attackValue}
+              saveType={saveType}
               numValue={numValue}
               switchState={switchState}
               dprAttacks={dprAttacks}
               damageError={damageError}
               toHitError={toHitError}
-              onAttackNameChange={setAttackName}
-              onDamgeValueChange={setDamageValue}
-              onAttackValueChange={setAttackValue}
-              onNumValueChange={setNumValue}
-              onSwitchStateChange={setSwitchState}
               onDprChange={onDprChange}
             />
             <ClearButton 
                 onAttackNameChange={setAttackName}
                 onDamgeValueChange={setDamageValue}
                 onAttackValueChange={setAttackValue}
+                setSaveOption={setSaveOption}
                 onNumValueChange={setNumValue}
                 onSwitchStateChange={setSwitchState}
             />
@@ -450,6 +443,7 @@ function AttackCard({
   setAttackName,
   setDamageValue,
   setAttackValue,
+  setSaveOption,
   setNumValue,
   setSwitchState,
   attack, 
@@ -492,8 +486,9 @@ function AttackCard({
   const edit = () => {
     setAttackName(attack.name)
     setDamageValue(attack.damagef)
-    if (attack.hitf=="SAVE") {
+    if (attack.hitf.includes("SAVE")) {
       setSwitchState(true)
+      setSaveOption(attack.hitf)
       setAttackValue("")
     } else {
       setSwitchState(false)
@@ -564,11 +559,18 @@ function AttackCard({
             <span className='formula-label'> Damage Formula: </span>
             <span className='formula-value'>{attack.damagef.replace(/\+/g, '+\u200B')}</span>
           </p>
-          { attack.hitf=="SAVE" ? (
-              <p className='formula-label' style={{margin: 2}}>
-                <span /*style={{color: '#006163ff'}}*/>Saving Throw 50% (no damage on success)</span>
-              </p>
-            ) : (
+          { attack.hitf.includes("SAVE") ? 
+            (
+              ( attack.hitf.includes("HALF") 
+              ? (<p className='formula-label' style={{margin: 2}}>
+                  <span /*style={{color: '#006163ff'}}*/>Saving Throw 50% (<i>half</i> damage on success)</span>
+                </p>)
+              : (<p className='formula-label' style={{margin: 2}}>
+                  <span /*style={{color: '#006163ff'}}*/>Saving Throw 50% (<i>no</i> damage on success)</span>
+                </p>)
+              )
+            ) 
+            : (
               <p className='formula' style={{margin: 2}}>
                 <span className='formula-label'> Attack Roll Formula: </span>
                 <span className='formula-value'> {attack.hitf.replace(/\+/g, '+\u200B')} </span>
@@ -586,6 +588,7 @@ function AttackDisplay({
   setAttackName,
   setDamageValue,
   setAttackValue,
+  setSaveOption,
   setNumValue,
   setSwitchState,
   attacks, 
@@ -599,6 +602,7 @@ function AttackDisplay({
         setAttackName={setAttackName}
         setDamageValue={setDamageValue}
         setAttackValue={setAttackValue}
+        setSaveOption={setSaveOption}
         setNumValue={setNumValue}
         setSwitchState={setSwitchState}
         attack={attack} 
@@ -630,6 +634,7 @@ function AnalyzerConfiguration({
   dprAttacks,
   setLastTestAC,
   setLastGraphColor,
+  setLastMinAC,
   setResultAvgs,
   setCrossSection,
   setThreeD
@@ -637,8 +642,8 @@ function AnalyzerConfiguration({
   const [minAC, setMinAC] = useState('10')
   const [maxAC, setMaxAC] = useState('25')
   const [testAC, setTestAC] = useState('15')
-  const [graphColor, setGraphColor] = useState('#21b1cef2')
-  const [hideMisses, setHideMisses] = useState(true)
+  const [graphColor, setGraphColor] = useState('#21b1ceff') //21b1cef2
+  const [isCrit, setIsCrit] = useState(true)
 
   const payload = () => {
     return {
@@ -650,13 +655,14 @@ function AnalyzerConfiguration({
         test : testAC
       },
       theme : graphColor,
-      isHideMisses : hideMisses
+      isCritFail : isCrit
     }
   }
 
   const handleSubmit = async () => {
     setLastTestAC(testAC)
     setLastGraphColor(graphColor)
+    setLastMinAC(minAC)
     try {
       const response1 = await axios.post('http://localhost:5001/api/averages', payload());
       setResultAvgs(response1.data.result)
@@ -673,7 +679,7 @@ function AnalyzerConfiguration({
   };
 
   const toggleMisses = () => {
-    setHideMisses(!hideMisses)
+    setIsCrit(!isCrit)
   }
 
   return (
@@ -704,7 +710,7 @@ function AnalyzerConfiguration({
             setGraphColor(c.toHexString());
           }}
         />
-        <Checkbox onChange={toggleMisses}>Hide Misses (3D)</Checkbox>
+        <Checkbox onChange={toggleMisses}>Evaluate Crit/Fail</Checkbox>
         <Button 
           color='green' 
           variant='solid' 
@@ -831,7 +837,7 @@ function CrossSectionGraph({ lastTestAC, lastGraphColor, crossSection }) {
       type: "bar",
       marker: {
         color: lastGraphColor,
-        line: { width: 1.5, color: "transparent" }
+        line: { width: 1.5, color: lastGraphColor }
       }
     };
 
@@ -854,7 +860,7 @@ function CrossSectionGraph({ lastTestAC, lastGraphColor, crossSection }) {
   return <div ref={crossRef}  />
 }
 
-function ThreeDGraph({ lastGraphColor, threeD }) {
+function ThreeDGraph({ lastGraphColor, lastMinAC, threeD }) {
   const threeRef = useRef(null)
   const [camera, setCamera] = useState(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -874,9 +880,8 @@ function ThreeDGraph({ lastGraphColor, threeD }) {
 
   // Main surface plot
   useEffect(() => {
-    console.log(threeD == null)
     const y1 = ( threeD != null ? Object.keys(threeD).map(Number) : [0])
-    const x1 = ( threeD != null ? Object.keys(threeD[y1[10]]).map(Number) : [0]) // change y1[10] to y1[lastMinAC] ASAP
+    const x1 = ( threeD != null ? Object.keys(threeD[y1[lastMinAC]]).map(Number) : [0]) // change y1[10] to y1[lastMinAC] ASAP
     const z1 = ( threeD != null 
       ? y1.map(yVal => {
           const row = threeD[yVal];
@@ -900,7 +905,7 @@ function ThreeDGraph({ lastGraphColor, threeD }) {
       type: 'surface', 
       hovertemplate: "Damage: %{x}<br>"+"AC: %{y}<br>"+"Probability: %{z}<br><extra></extra>",
       surfacecolor: surfacecolor,
-      colorscale: [[0, "#bcf4ffff"], [1, lastGraphColor]], //"#ffffff"
+      colorscale: [[0, "#bcf4ffff"], [1, lastGraphColor]], //lastGraphColor
       showscale: false
     }; // enable color gradient here
 
@@ -911,7 +916,7 @@ function ThreeDGraph({ lastGraphColor, threeD }) {
         y: 0.96, 
         pad: { t: 5 }
       },
-      plot_bgcolor : "#a7a7a7ff", // change this back?
+      plot_bgcolor : "#141414", 
       paper_bgcolor : "#141414",
       font: { color : "white" },
       scene: {
@@ -982,9 +987,11 @@ function App() {
   const [numValue, setNumValue] = useState("")
   const [switchState, setSwitchState] = useState(false)
 
-  
+  const [saveOption, setSaveOption] = useState('SAVE')
+
   const [lastTestAC, setLastTestAC] = useState('15')
   const [lastGraphColor, setLastGraphColor] = useState('#21b1cef2')
+  const [lastMinAC, setLastMinAC] = useState('10')
   const [resultAvgs, setResultAvgs] = useState([])
   const [crossSection, setCrossSection] = useState([])
   const [threeD, setThreeD] = useState(null)
@@ -1006,6 +1013,7 @@ function App() {
           <div class="item2">
             <ThreeDGraph 
               lastGraphColor={lastGraphColor}
+              lastMinAC={lastMinAC}
               threeD={threeD}
             />
           </div>
@@ -1025,12 +1033,14 @@ function App() {
                   attackName={attackName}
                   damageValue={damageValue}
                   attackValue={attackValue}
+                  saveOption={saveOption}
                   numValue={numValue}
                   switchState={switchState} 
                   dprAttacks={dprAttacks} 
                   setAttackName={setAttackName}
                   setDamageValue={setDamageValue}
                   setAttackValue={setAttackValue}
+                  setSaveOption={setSaveOption}
                   setNumValue={setNumValue}
                   setSwitchState={setSwitchState}
                   onDprChange={setAttacks}/>
@@ -1040,6 +1050,7 @@ function App() {
                   setAttackName={setAttackName}
                   setDamageValue={setDamageValue}
                   setAttackValue={setAttackValue}
+                  setSaveOption={setSaveOption}
                   setNumValue={setNumValue}
                   setSwitchState={setSwitchState}
                   attacks={dprAttacks}
@@ -1051,6 +1062,7 @@ function App() {
                     dprAttacks={dprAttacks}
                     setLastTestAC={setLastTestAC}
                     setLastGraphColor={setLastGraphColor}
+                    setLastMinAC={setLastMinAC}
                     setResultAvgs={setResultAvgs}
                     setCrossSection={setCrossSection}
                     setThreeD={setThreeD}
