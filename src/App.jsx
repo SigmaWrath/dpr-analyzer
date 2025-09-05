@@ -22,53 +22,35 @@ import 'react-plotly.js'
     </ConfigProvider>*/
 
 /* TODO: 
-*   1. Saving throws: 2) Half damage on successful save.
-    2. PHASE 5: GRAPHS
-        Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
-          Probabilities in %?
+*   1. PHASE 7: UI Polishing
+        Make graph positioning robust to browser.
 
-    3. PHASE 6: UI Polishing
-        Reconfigure the 3rd panel to have a max height, so that the bottom bar doesn't overflow due to long top text. 
-          After that's done, we can set a quasi-maximally generous character limit on top text 
-            (assuming all widest character, how many characters before weird shit happens?)
-          No narrower than 415 px, no shorter than 530. We can narrow to 355 if we set a minWidth for the saveswitch
+        Two-line titles shouldn't push out bottom bar
 
         Say you can't use on phone
 
-        Make graph positioning robust to browser.
+        Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
+          Probabilities in %?
 
-        Definitely: an ability to let you zoom into the graphs, or temporarily make them full screen.
-          Try to hide the Plotly bar as well.
-
-        Character limit (two) for AC boxes?
-        Disable the analyze button if no attacks. Show errors if maxAC is not > minAC.
-          Disable the analyze button in that case as well.
-
-        DiceFormulas in backend are allowed to have things like d20 instead of 1d20. 
-          Allow this in frontend as well, but augmenting validFormulas in AttackInput
-
-    4. PHASE 7: Lock in deployment strategy (COMPLETE!!)
-          Convert python to JS
-          Allow saves into an S3 w/ Cogito login
-
-    5. PHASE 8: Convert dpr_core into JS
-          Before starting, touch up the python code to make sure it's well architected and streamlined.
-          Push to git, then clone into a new branch.
-          Go file by file:
-            1. Die.py
-            2. probability_utils.py
-            3. DiceFormula.py
-            4. Attack.py
-            5. Analyzer.py
-    6. PHASE 9: Add remaining formula features to JS dpr_core
+    4. PHASE 8: Add remaining formula features to python dpr_core
           Final new features before wrap-up:
             1. Elven accuracy
             2. Crit/fail
             3. Number of rounds in Analyzer, so it can averaged over a few rounds of combat
-    7. PHASE 10: Saving configurations
-        Cogito -> S3. IAM 
-    8. PHASE 11: Tours, help, documentation, credits
-    9. PHASE 12: Deployment
+    5. PHASE 9: Convert dpr_core into JS (https://www.gitloop.com/tool/python-to-javascript)
+          Before starting, touch up the python code to make sure it's well architected and streamlined.
+          Push to git, then clone into a new branch.
+          SETUP A TESTING ENVIRONMENT FOR THE LOVE OF GOD... actually just test in the tool?
+          Go file by file:
+            1. Die.py                 [avg, distribution]
+            2. probability_utils.py   [add_dists, halve_dist, superposition_dists]
+            3. DiceFormula.py         [avg_roll, frequencies]
+            4. Attack.py              [prob_to_hit, damage_dist, damage_avg]
+            5. Analyzer.py            [add, simulate, get_avg]
+    6. PHASE 10: Saving configurations
+        Cogito -> S3. Get IAM right
+    7. PHASE 11: Tours, help, documentation, credits
+    8. PHASE 12: Deployment
 */
 
 /* Future iterations:
@@ -91,6 +73,7 @@ import 'react-plotly.js'
 // Ask for Opinions:
 //    1. Confine AnalyzerConfiguration to the bottom of the page ??
 //    2. Confirmation Modal for removing attack cards?
+//    3. Perhaps: an ability to let you zoom into the graphs, or temporarily make them full screen.
 
 // Idea: Ability to save config from website as a JSON file? And then reupload later. 
 // UI would be a float button that opens up a drawer for this.
@@ -298,11 +281,12 @@ function AttackInput({
   const checkFormulaPattern = (pattern) => {
     var isFormula = true
 
+    const soleDie = /^d\d+$/
     const diceRoll = /^\d+d\d+$/
     const advDiceRoll = /^Ad\d+$/
     const dadvDiceRoll = /^Dd\d+$/
     const modifier = /^\d+$/
-    const validTerms = [diceRoll, advDiceRoll, dadvDiceRoll, modifier]
+    const validTerms = [soleDie, diceRoll, advDiceRoll, dadvDiceRoll, modifier]
 
     const pieces = pattern.split("+")
 
@@ -639,11 +623,22 @@ function AnalyzerConfiguration({
   setCrossSection,
   setThreeD
 }) {
+  const [acError, setACError] = useState('')
+
   const [minAC, setMinAC] = useState('10')
   const [maxAC, setMaxAC] = useState('25')
   const [testAC, setTestAC] = useState('15')
   const [graphColor, setGraphColor] = useState('#21b1ceff') //21b1cef2
   const [isCrit, setIsCrit] = useState(true)
+
+  useEffect( () => {
+    if (Number(minAC)>=Number(maxAC)) {
+      setACError('error')
+    } else {
+      setACError('')
+    }
+
+  }, [minAC, maxAC])
 
   const payload = () => {
     return {
@@ -685,20 +680,50 @@ function AnalyzerConfiguration({
   return (
     <div class="attack-input">
       <Flex gap={8} style={{width: "28vw"}}>
-        <Input 
+        <Tooltip 
+          placement='top'
+          title={ acError
+            ? <div style={{ textAlign: "center" }}>Min AC must be lower than Max AC</div> 
+            : null
+          }
+        >
+          <Input 
             addonBefore="Min AC: " 
-            value={minAC}  
-            onChange={ (e)=> setMinAC(e.target.value) }
+            count = {{
+              max: 2, 
+              exceedFormatter: (txt, { max }) => runes(txt).slice(0, max).join('')
+            }}
+            status={acError}
+            value={minAC}
+            onChange={ (e)=> setMinAC(e.target.value.replace(/\D/g, '')) }
           />
-        <Input 
+        </Tooltip>
+        <Tooltip 
+          placement='top'
+          title={ acError
+            ? <div style={{ textAlign: "center" }}>Max AC must be greater than Min AC</div> 
+            : null
+          }
+        >
+          <Input 
             addonBefore="Max AC: " 
+            count = {{
+              max: 2, 
+              exceedFormatter: (txt, { max }) => runes(txt).slice(0, max).join('')
+            }}
+            status={acError}
             value={maxAC}
-            onChange={ (e)=> setMaxAC(e.target.value) }
+            onChange={ (e)=> setMaxAC(e.target.value.replace(/\D/g, '')) }
           />
+        </Tooltip>
         <Input 
             addonBefore="Test AC: " 
+            count = {{
+              max: 2, 
+              exceedFormatter: (txt, { max }) => runes(txt).slice(0, max).join('')
+            }}
             value={testAC}  
-            onChange={ (e)=> setTestAC(e.target.value) }
+            onChange={ (e)=> setTestAC(e.target.value.replace(/\D/g, '')) }
           />
       </Flex>
       <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
@@ -716,6 +741,7 @@ function AnalyzerConfiguration({
           variant='solid' 
           icon={<CheckOutlined />}
           style={{paddingLeft: 15, paddingRight: 15, marginTop: 6, marginLeft: 0}} 
+          disabled={(acError=='error' || dprAttacks.length==0) ? true : false}
           onClick={handleSubmit}
         >Analyze</Button>
       </Space>
