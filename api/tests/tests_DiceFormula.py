@@ -27,6 +27,11 @@ class MyTestCase(unittest.TestCase):
         damage = DiceFormula("Ad20+1d4+3")
         damage.graph()
 
+    def test_elven(self):
+        elven = DiceFormula("Ed20")
+        print(elven.frequencies())
+        elven.graph()
+
     def test_savage_greatsword(self):
         great_dmg = DiceFormula("2d6")
         probs = great_dmg.frequencies()

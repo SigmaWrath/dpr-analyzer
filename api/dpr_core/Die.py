@@ -19,18 +19,23 @@ class Die:
                 return d_avg
             elif self.mode == 'A':
                 return (n+1)-d_avg
+            elif self.mode == 'E':
+                return (n+1)-(n+1)**2/(4*n)
             else:
                 raise Exception("Unexpected Die Mode")
 
     # Return the probability distribution of a roll of the die
     def distribution(self):
         dist = {}
-        for i in range(self.num_sides):
+        n = self.num_sides
+        for i in range(n):
             match self.mode:
                 case 1:
-                    dist[i+1] = 1/self.num_sides
+                    dist[i+1] = 1/n
                 case 'A':
-                    dist[i+1] = (2*i+1)/(self.num_sides**2)
+                    dist[i+1] = (2*i+1)/(n**2)
                 case 'D':
-                    dist[i+1] = (2*self.num_sides-2*i-1)/(self.num_sides**2)
+                    dist[i+1] = (2*n-2*i-1)/(n**2)
+                case 'E':
+                    dist[i+1] = (1+3*i+3*i**2)/n**3
         return dist

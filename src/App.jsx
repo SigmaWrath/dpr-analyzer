@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex,
+import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, FloatButton,
             Tooltip, Typography, ColorPicker, Checkbox, Col, Row, Select} from "antd";
-import { CheckOutlined, DeleteOutlined, EditOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { CheckOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, HomeOutlined, MinusOutlined, PlusOutlined, QuestionCircleOutlined, QuestionOutlined, SaveOutlined } from '@ant-design/icons';
 import './App.css'
 const {Title, Text} = Typography
 import axios from 'axios';
@@ -27,17 +27,14 @@ import 'react-plotly.js'
 
         Two-line titles shouldn't push out bottom bar
 
-        Say you can't use on phone
-
         Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
           Probabilities in %?
-
-    4. PHASE 8: Add remaining formula features to python dpr_core
+    2. PHASE 8: Add remaining formula features to python dpr_core
           Final new features before wrap-up:
             1. Elven accuracy
             2. Crit/fail
             3. Number of rounds in Analyzer, so it can averaged over a few rounds of combat
-    5. PHASE 9: Convert dpr_core into JS (https://www.gitloop.com/tool/python-to-javascript)
+    3. PHASE 9: Convert dpr_core into JS (https://www.gitloop.com/tool/python-to-javascript)
           Before starting, touch up the python code to make sure it's well architected and streamlined.
           Push to git, then clone into a new branch.
           SETUP A TESTING ENVIRONMENT FOR THE LOVE OF GOD... actually just test in the tool?
@@ -47,10 +44,10 @@ import 'react-plotly.js'
             3. DiceFormula.py         [avg_roll, frequencies]
             4. Attack.py              [prob_to_hit, damage_dist, damage_avg]
             5. Analyzer.py            [add, simulate, get_avg]
-    6. PHASE 10: Saving configurations
-        Cogito -> S3. Get IAM right
-    7. PHASE 11: Tours, help, documentation, credits
-    8. PHASE 12: Deployment
+    4. PHASE 10: Saving configurations
+        Cognito -> S3. Get IAM right
+    5. PHASE 11: Tours, help, documentation, credits
+    6. PHASE 12: Deployment
 */
 
 /* Future iterations:
@@ -62,6 +59,8 @@ import 'react-plotly.js'
       6. Brainstorm: a way to analyze 1/round things. Find total chance of hit per round??
           Maybe instead of num rounds, fractional attacks, using smth similar to halve_dist().
           Then we could do a special rider type that is referentially added to other attacks?
+            Yes, v2.5 should definitely have riders.
+            Could input in AttackInput, and replace SaveSwitch with a select menu that includes Rider.
 
       More advanced formulas can be enabled with an "order of operations" for the effects
 */
@@ -285,8 +284,11 @@ function AttackInput({
     const diceRoll = /^\d+d\d+$/
     const advDiceRoll = /^Ad\d+$/
     const dadvDiceRoll = /^Dd\d+$/
+    const elvenDiceRoll = /^Ed\d+$/
     const modifier = /^\d+$/
-    const validTerms = [soleDie, diceRoll, advDiceRoll, dadvDiceRoll, modifier]
+    const validTerms = [soleDie, diceRoll, 
+                        advDiceRoll, dadvDiceRoll, elvenDiceRoll, 
+                        modifier]
 
     const pieces = pattern.split("+")
 
@@ -631,6 +633,8 @@ function AnalyzerConfiguration({
   const [graphColor, setGraphColor] = useState('#21b1ceff') //21b1cef2
   const [isCrit, setIsCrit] = useState(true)
 
+  const [isLoading, setIsLoading] = useState(false)
+
   useEffect( () => {
     if (Number(minAC)>=Number(maxAC)) {
       setACError('error')
@@ -655,6 +659,7 @@ function AnalyzerConfiguration({
   }
 
   const handleSubmit = async () => {
+    setIsLoading(true)
     setLastTestAC(testAC)
     setLastGraphColor(graphColor)
     setLastMinAC(minAC)
@@ -671,6 +676,7 @@ function AnalyzerConfiguration({
     } catch (err) {
       console.error('Error:', err);
     }
+    setIsLoading(false)
   };
 
   const toggleMisses = () => {
@@ -742,6 +748,7 @@ function AnalyzerConfiguration({
           icon={<CheckOutlined />}
           style={{paddingLeft: 15, paddingRight: 15, marginTop: 6, marginLeft: 0}} 
           disabled={(acError=='error' || dprAttacks.length==0) ? true : false}
+          loading={isLoading}
           onClick={handleSubmit}
         >Analyze</Button>
       </Space>
@@ -1108,6 +1115,21 @@ function App() {
               resultAvgs={resultAvgs}/>
           </div> 
         </div>
+        <FloatButton.Group
+          trigger="hover"
+          style={{ insetInlineEnd: 24, color: '#ffffff'}} // TODO: color customization for child icons (purple question mark, etc.)
+          icon={<EllipsisOutlined />}
+        >
+          <Tooltip title={"Back to Home"} placement='left'>
+            <FloatButton type='default' icon={<HomeOutlined />}/>
+          </Tooltip>
+          <Tooltip title={"Save"} placement='left'>
+            <FloatButton type='primary' icon={<SaveOutlined />} />
+          </Tooltip>
+          <Tooltip title={"Help"} placement='left'>
+            <FloatButton type='default' icon={<QuestionCircleOutlined />}/>
+          </Tooltip>
+        </FloatButton.Group>
       </ConfigProvider>
     </>
   )

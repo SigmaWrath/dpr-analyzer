@@ -20,7 +20,7 @@ class DiceFormula:
                 coefficients = re.split('d', term.strip())
                 if coefficients[0] == '':
                     dice_dict[int(coefficients[1])] += 1
-                elif coefficients[0] == 'A' or coefficients[0] == 'D':
+                elif coefficients[0] == 'A' or coefficients[0] == 'D' or coefficients[0] == 'E':
                     dice_dict[coefficients[0] + coefficients[1]] += 1
                 else:
                     dice_dict[int(coefficients[1])] += int(coefficients[0])
