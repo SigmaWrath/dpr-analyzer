@@ -122,6 +122,10 @@
   word-break: break-word;
 }
 
+.test-ac {
+  color: #03c2c5ff
+}
+
 .attack-display {
   overflow-y: scroll;
 }
@@ -130,14 +134,27 @@
   text-align: center;
   margin-left: 0;
   margin-right: 1.3vw;
+  flex: 0 0 auto;
 }
 
 .card-container {
   max-height: calc(100vh - 468px);
 }
 
-.test-ac {
-  color: #03c2c5ff
+.middle-container {
+  display: flex;
+  flex-direction: column;
+  height: 80vh; /* or whatever fixed height you want */
+  overflow: hidden;
+}
+
+.input-stack {
+  flex: 0 0 207px;
+}
+
+.card-stack {
+  flex: 1 1 auto; /* take remaining space */
+  overflow-y: auto;
 }
 
 

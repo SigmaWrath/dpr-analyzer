@@ -46,8 +46,6 @@ import { CSS } from "@dnd-kit/utilities";
 
         Make graph positioning robust to browser.
 
-        Two-line titles shouldn't push out bottom bar
-
         Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
           Probabilities in %?
     2. PHASE 8: Add remaining formula features to python dpr_core
@@ -92,8 +90,7 @@ import { CSS } from "@dnd-kit/utilities";
 //      Hint: I already tried getting rid of the ternary and using a state for that, so that's not it.
 
 // Ask for Opinions:
-//    1. Confine AnalyzerConfiguration to the bottom of the page ??
-//    2. Confirmation Modal for removing attack cards?
+//    1. Confirmation Modal for removing attack cards? (or for editing cards)
 //    3. Perhaps: an ability to let you zoom into the graphs, or temporarily make them full screen.
 
 // Idea: Ability to save config from website as a JSON file? And then reupload later. 
@@ -686,7 +683,7 @@ function AttackDisplay({
   return (
     <div
       ref={scrollRef}
-      className="scrollable card-container"
+      className="scrollable card-container" // className="scrollable "
       style={{
         overflowY: "auto",
         paddingTop: 10,
@@ -1189,6 +1186,7 @@ function App() {
             />
           </div>
           <div class="item3">
+            <div class="middle-container">
               <div class="analyzer-title" style={{width: "28vw", marginLeft: "2.1vw", marginTop: "25px"}}>
                   <Title 
                     level={3} 
@@ -1199,7 +1197,7 @@ function App() {
                      }}
                   >{buildTitle}</Title>
               </div>
-              <div style={{paddingTop: 15}}>
+              <div class="input-stack" style={{paddingTop: 15}}>
                 <AttackInput
                   attackName={attackName}
                   damageValue={damageValue}
@@ -1217,7 +1215,7 @@ function App() {
                   onDprChange={setAttacks}
                   scrollToTop={scrollToTop}/>
               </div>  
-              <div style={{paddingTop: 15}}>
+              <div className="card-stack" style={{paddingTop: 15}}>
                 <AttackDisplay 
                   setAttackName={setAttackName}
                   setDamageValue={setDamageValue}
@@ -1229,7 +1227,8 @@ function App() {
                   onDprChange={setAttacks}
                   scrollRef={containerRef}/>
               </div>
-              <div style={{paddingTop: 25}}>
+            </div>
+              <div class='footer' style={{paddingTop: 25}}>
                 <AnalyzerConfiguration 
                     buildTitle={buildTitle}
                     dprAttacks={dprAttacks}
