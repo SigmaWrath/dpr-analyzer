@@ -1,11 +1,30 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, FloatButton,
             Tooltip, Typography, ColorPicker, Checkbox, Col, Row, Select} from "antd";
-import { CheckOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, HomeOutlined, MinusOutlined, PlusOutlined, QuestionCircleOutlined, QuestionOutlined, SaveOutlined } from '@ant-design/icons';
+import { CheckOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, HomeOutlined, MenuOutlined, MinusOutlined, PlusOutlined, QuestionCircleOutlined, SaveOutlined } from '@ant-design/icons';
+// import '@ant-design/v5-patch-for-react-19'; 
+      // this completely broke everything omg, but gotta do it eventually
 import './App.css'
 const {Title, Text} = Typography
 import axios from 'axios';
-import 'react-plotly.js'
+import Plot from 'react-plotly.js';
+
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 
 /*<ConfigProvider
       theme={{
@@ -23,6 +42,8 @@ import 'react-plotly.js'
 
 /* TODO: 
 *   1. PHASE 7: UI Polishing
+        Scroll to position of attack when it is added to itself. (x1+1=2)
+
         Make graph positioning robust to browser.
 
         Two-line titles shouldn't push out bottom bar
@@ -31,9 +52,9 @@ import 'react-plotly.js'
           Probabilities in %?
     2. PHASE 8: Add remaining formula features to python dpr_core
           Final new features before wrap-up:
-            1. Elven accuracy
             2. Crit/fail
-            3. Number of rounds in Analyzer, so it can averaged over a few rounds of combat
+            3. Decide on what we're doing with the bottom bar 
+                (just removing Graph Color? are we replacing it? don't have to)
     3. PHASE 9: Convert dpr_core into JS (https://www.gitloop.com/tool/python-to-javascript)
           Before starting, touch up the python code to make sure it's well architected and streamlined.
           Push to git, then clone into a new branch.
@@ -61,6 +82,7 @@ import 'react-plotly.js'
           Then we could do a special rider type that is referentially added to other attacks?
             Yes, v2.5 should definitely have riders.
             Could input in AttackInput, and replace SaveSwitch with a select menu that includes Rider.
+          Expanded view of attack cards, w/ no scrolling??
 
       More advanced formulas can be enabled with an "order of operations" for the effects
 */
@@ -116,7 +138,8 @@ function AttackButton({
   damageError,
   toHitError,
   dprAttacks,
-  onDprChange
+  onDprChange,
+  scrollToTop
 }) {
 
   const [submitDisabled, setSubmitDisabled] = useState(false)
@@ -181,8 +204,8 @@ function AttackButton({
           ]
         )
       }
+      scrollToTop()
     }
-    
   }
 
   return (
@@ -234,7 +257,8 @@ function AttackInput({
   setSaveOption,
   setNumValue,
   setSwitchState,
-  onDprChange 
+  onDprChange,
+  scrollToTop
 }) {
 
   const [saveType, setSaveType] = useState('SAVE')
@@ -409,6 +433,7 @@ function AttackInput({
               damageError={damageError}
               toHitError={toHitError}
               onDprChange={onDprChange}
+              scrollToTop={scrollToTop}
             />
             <ClearButton 
                 onAttackNameChange={setAttackName}
@@ -425,16 +450,39 @@ function AttackInput({
   )
 }
 
-function AttackCard({ 
+function AttackCard({
   setAttackName,
   setDamageValue,
   setAttackValue,
   setSaveOption,
   setNumValue,
   setSwitchState,
-  attack, 
-  dprAttacks, 
-  onDprChange }) {
+  attack,
+  dprAttacks,
+  onDprChange,
+  isOverlay
+}) {
+  // useSortable for reordering
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: attack.name });
+
+  // combine refs from sortable + droppable
+  const combinedRef = (node) => {
+    setNodeRef(node);
+  };
+
+  const outerStyle = ( isOverlay
+  ? {
+      opacity: 1,
+      transform: undefined, // overlay should not get sortable transform
+      transition: undefined,
+    }
+  : {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0 : 1, // hide original while dragging
+    }
+  );
 
   const remove = () => {
     onDprChange(
@@ -455,8 +503,8 @@ function AttackCard({
   }
 
   const decrease = () => {
-    if (attack.times==1) {
-      remove()
+    if (attack.times==0) {
+      // remove()
     }
     else {
       onDprChange(
@@ -484,17 +532,46 @@ function AttackCard({
     remove()
   }
 
-  return (
-    <div className='attack-card'>
-      <ConfigProvider 
-        theme={{ 
-          algorithm: theme.darkAlgorithm,
+  // drag handle + title
+  const cardTitle = (
+    <div style={{ display: "flex", gap: 8 }}>
+      <span
+        {...(!isOverlay ? attributes : {})}
+        {...(!isOverlay ? listeners : {})}
+        style={{
+          display: "inline-flex",
+          cursor: isOverlay ? "grabbing" : "grab",
+          color: isOverlay ? "#096dd9" : undefined,
+        }}
+        // prevent accidental button-like focus styling interfering:
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <MenuOutlined />
+      </span>
+      <span
+        style={{
+          flex: 1,
+          textAlign: "left",
+          whiteSpace: "normal", // allow line wrapping
+          wordBreak: "break-word", // break long tokens if needed
         }}
       >
-        <Card 
-          size="small" 
-          title={attack.name}
-          style={{ width:"28vw"}}
+        {attack.name}
+      </span>
+    </div>
+  );
+
+  return (
+    <div ref={combinedRef} style={outerStyle} className='attack-card'>
+      <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+        <Card
+          size="small"
+          title={cardTitle}
+          style={{
+            border: isOverlay ? "0.5px solid #1890ff" : "0.5px solid #303030",
+            background: isOverlay ? "#111111ff" : "#141414ff",
+            width: "28vw"
+          }}
           extra={
             <Flex wrap gap="2px">
               <Tooltip title="edit">
@@ -563,56 +640,108 @@ function AttackCard({
               </p>
             )
           }
-          
         </Card>
       </ConfigProvider>
     </div>
-  )
+  );
 }
 
-function AttackDisplay({ 
+function AttackDisplay({
   setAttackName,
   setDamageValue,
   setAttackValue,
   setSaveOption,
   setNumValue,
   setSwitchState,
-  attacks, 
-  onDprChange }) {
+  attacks,
+  onDprChange,
+  scrollRef
+}) {
+  const sensors = useSensors(useSensor(PointerSensor));
+  const [activeId, setActiveId] = useState(null);
 
-  const cards = [];
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
 
-  attacks.forEach(attack => {
-    cards.push(
-      <AttackCard 
-        setAttackName={setAttackName}
-        setDamageValue={setDamageValue}
-        setAttackValue={setAttackValue}
-        setSaveOption={setSaveOption}
-        setNumValue={setNumValue}
-        setSwitchState={setSwitchState}
-        attack={attack} 
-        dprAttacks={attacks} 
-        onDprChange={onDprChange} />
-    )
-  });
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = attacks.findIndex((a) => a.name === active.id);
+      const newIndex = attacks.findIndex((a) => a.name === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const newOrder = arrayMove(attacks, oldIndex, newIndex);
+      onDprChange(newOrder);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
+  const activeAttack = attacks.find((a) => a.name === activeId);
 
   return (
-    <div 
-      className='scrollable card-container'
-      style=
-      {{
-        overflowY: 'auto',
+    <div
+      ref={scrollRef}
+      className="scrollable card-container"
+      style={{
+        overflowY: "auto",
         paddingTop: 10,
-        paddingBottom: 10
+        paddingBottom: 10,
       }}
     >
-      <Flex className='attack-display' vertical gap={"small"}>
-        {cards}
-      </Flex>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+        modifiers={[restrictToFirstScrollableAncestor]}
+        autoScroll={true}
+      >
+        <SortableContext
+          items={attacks.map((a) => a.name)}
+          strategy={verticalListSortingStrategy}
+        >
+          <Flex className='attack-display' vertical gap={10}>
+            {attacks.map((attack) => (
+              <AttackCard
+                key={attack.name}
+                setAttackName={setAttackName}
+                setDamageValue={setDamageValue}
+                setAttackValue={setAttackValue}
+                setSaveOption={setSaveOption}
+                setNumValue={setNumValue}
+                setSwitchState={setSwitchState}
+                attack={attack}
+                dprAttacks={attacks}
+                onDprChange={onDprChange}
+              />
+            ))}
+          </Flex>
+        </SortableContext>
+        <DragOverlay>
+          {activeAttack ? (
+            <AttackCard
+              setAttackName={setAttackName}
+              setDamageValue={setDamageValue}
+              setAttackValue={setAttackValue}
+              setSaveOption={setSaveOption}
+              setNumValue={setNumValue}
+              setSwitchState={setSwitchState}
+              attack={activeAttack}
+              dprAttacks={attacks}
+              onDprChange={onDprChange}
+              isOverlay={true}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
-    
-  )
+  );
 }
 
 function AnalyzerConfiguration({
@@ -938,7 +1067,7 @@ function ThreeDGraph({ lastGraphColor, lastMinAC, threeD }) {
       type: 'surface', 
       hovertemplate: "Damage: %{x}<br>"+"AC: %{y}<br>"+"Probability: %{z}<br><extra></extra>",
       surfacecolor: surfacecolor,
-      colorscale: [[0, "#bcf4ffff"], [1, lastGraphColor]], //lastGraphColor
+      colorscale: [[0, "#bcf4ffff"], [1, lastGraphColor]], //bcf4ffff
       showscale: false
     }; // enable color gradient here
 
@@ -1021,9 +1150,18 @@ function App() {
   const [switchState, setSwitchState] = useState(false)
 
   const [saveOption, setSaveOption] = useState('SAVE')
+  const containerRef = useRef(null);
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth", // or "auto"
+      });
+    }
+  };
 
   const [lastTestAC, setLastTestAC] = useState('15')
-  const [lastGraphColor, setLastGraphColor] = useState('#21b1cef2')
+  const [lastGraphColor, setLastGraphColor] = useState('#21b1ceff')
   const [lastMinAC, setLastMinAC] = useState('10')
   const [resultAvgs, setResultAvgs] = useState([])
   const [crossSection, setCrossSection] = useState([])
@@ -1076,7 +1214,8 @@ function App() {
                   setSaveOption={setSaveOption}
                   setNumValue={setNumValue}
                   setSwitchState={setSwitchState}
-                  onDprChange={setAttacks}/>
+                  onDprChange={setAttacks}
+                  scrollToTop={scrollToTop}/>
               </div>  
               <div style={{paddingTop: 15}}>
                 <AttackDisplay 
@@ -1087,7 +1226,8 @@ function App() {
                   setNumValue={setNumValue}
                   setSwitchState={setSwitchState}
                   attacks={dprAttacks}
-                  onDprChange={setAttacks}/>
+                  onDprChange={setAttacks}
+                  scrollRef={containerRef}/>
               </div>
               <div style={{paddingTop: 25}}>
                 <AnalyzerConfiguration 
