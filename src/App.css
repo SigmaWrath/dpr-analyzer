@@ -126,10 +126,6 @@
   color: #03c2c5ff
 }
 
-.attack-display {
-  overflow-y: scroll;
-}
-
 .analyzer-title {
   text-align: center;
   margin-left: 0;
@@ -155,6 +151,7 @@
 .card-stack {
   flex: 1 1 auto; /* take remaining space */
   overflow-y: auto;
+  min-height: 0;
 }
 
 

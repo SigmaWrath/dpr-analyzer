@@ -683,7 +683,7 @@ function AttackDisplay({
   return (
     <div
       ref={scrollRef}
-      className="scrollable card-container" // className="scrollable "
+      className="scrollable"
       style={{
         overflowY: "auto",
         paddingTop: 10,
@@ -703,7 +703,7 @@ function AttackDisplay({
           items={attacks.map((a) => a.name)}
           strategy={verticalListSortingStrategy}
         >
-          <Flex className='attack-display' vertical gap={10}>
+          <Flex vertical gap={10}>
             {attacks.map((attack) => (
               <AttackCard
                 key={attack.name}
@@ -1215,7 +1215,7 @@ function App() {
                   onDprChange={setAttacks}
                   scrollToTop={scrollToTop}/>
               </div>  
-              <div className="card-stack" style={{paddingTop: 15}}>
+              <div className="card-stack" style={{marginTop: 15}}>
                 <AttackDisplay 
                   setAttackName={setAttackName}
                   setDamageValue={setDamageValue}
