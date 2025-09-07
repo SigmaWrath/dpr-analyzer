@@ -795,13 +795,13 @@ function AnalyzerConfiguration({
     try {
       const response1 = await axios.post('http://localhost:5001/api/averages', payload());
       setResultAvgs(response1.data.result)
+      console.log(response1.data.result)
 
       const response2 = await axios.post('http://localhost:5001/api/cross-section', payload());
       setCrossSection(response2.data.result)
 
       const response3 = await axios.post('http://localhost:5001/api/three-d', payload());
       setThreeD(response3.data.result)
-      console.log(response3.data.result)
     } catch (err) {
       console.error('Error:', err);
     }
@@ -914,7 +914,7 @@ function AveragesDisplay({
   const avgs = Object.entries(resultAvgs)
   
   const column1 = []
-  for (let i=0; i<(avgs.length/2); i++) {
+  for (let i=0; i<Math.ceil(avgs.length/2); i++) {
     column1.push(
       <AverageLine 
         lastTestAC={lastTestAC}
@@ -925,7 +925,7 @@ function AveragesDisplay({
   }
 
   const column2 = []
-  for (let i=(avgs.length/2); i<avgs.length; i++) {
+  for (let i=Math.ceil(avgs.length/2); i<avgs.length; i++) {
     column2.push(
       <AverageLine
         lastTestAC={lastTestAC}
