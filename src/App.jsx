@@ -1043,7 +1043,7 @@ function ThreeDGraph({ lastGraphColor, lastMinAC, threeD }) {
   // Main surface plot
   useEffect(() => {
     const y1 = ( threeD != null ? Object.keys(threeD).map(Number) : [0])
-    const x1 = ( threeD != null ? Object.keys(threeD[y1[lastMinAC]]).map(Number) : [0]) // change y1[10] to y1[lastMinAC] ASAP
+    const x1 = ( threeD != null ? Object.keys(threeD[y1[0]]).map(Number) : [0])
     const z1 = ( threeD != null 
       ? y1.map(yVal => {
           const row = threeD[yVal];
@@ -1134,7 +1134,7 @@ function ThreeDGraph({ lastGraphColor, lastMinAC, threeD }) {
         threeRef.current.removeAllListeners("plotly_relayout");
       }
     };
-  }, [size, lastGraphColor, threeD]);
+  }, [size, lastGraphColor, threeD, lastMinAC]);
   
   return <div ref={threeRef} />
 }
