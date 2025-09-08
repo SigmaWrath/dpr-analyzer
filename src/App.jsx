@@ -42,9 +42,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 /* TODO: 
 *   1. PHASE 7: UI Polishing
-        Fix highlight on reorder (it's not supposed to do that). 
-            useState instead of useRef for lastAddedAttack???
-        Highlight the input boxes when we bring up an attack to edit.
+        Glow SaveSwitch on edit as well.
 
         Make graph positioning robust to browser.
 
@@ -254,24 +252,27 @@ function ClearButton({
 
 }
 
-function AttackInput({ 
-  attackName,
-  damageValue,
-  attackValue,
-  saveOption,
-  numValue,
-  switchState,
-  dprAttacks, 
-  setAttackName,
-  setDamageValue,
-  setAttackValue,
-  setSaveOption,
-  setNumValue,
-  setSwitchState,
-  onDprChange,
-  scrollToAttack,
-  highlightAttack
-}) {
+function AttackInput(
+  { 
+    attackName,
+    damageValue,
+    attackValue,
+    saveOption,
+    numValue,
+    switchState,
+    dprAttacks, 
+    setAttackName,
+    setDamageValue,
+    setAttackValue,
+    setSaveOption,
+    setNumValue,
+    setSwitchState,
+    onDprChange,
+    scrollToAttack,
+    highlightAttack,
+    registerInputRef
+  },
+) {
 
   const [saveType, setSaveType] = useState('SAVE')
 
@@ -370,6 +371,7 @@ function AttackInput({
                 value={attackName}
                 status={nameError}
                 onChange={ (e)=> setAttackName(e.target.value) }
+                ref={(el) => registerInputRef("attackName", el)}
               />
           </Tooltip>
           <Tooltip 
@@ -385,6 +387,7 @@ function AttackInput({
               value={damageValue}
               status={damageError}
               onChange={ (e)=> setDamageValue(e.target.value/*.replace(/[^dDA+0-9 ]/g, "")*/)}
+              ref={(el) => registerInputRef("damageValue", el)}
             />
           </Tooltip>
           <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
@@ -402,12 +405,15 @@ function AttackInput({
                   value={attackValue} 
                   status={toHitError}
                   onChange={(e) => setAttackValue(e.target.value/*.replace(/[^dDA+0-9 ]/g, "")*/)}
-                  disabled={switchState}/>
+                  disabled={switchState}
+                  ref={(el) => registerInputRef("attackValue", el)}
+                  />
               </Tooltip>
             )}
 
             { switchState && (
               <Select
+                className='save-select'
                 variant='filled'
                 style={{ width: '18vw' }}
                 value={saveOption}
@@ -419,6 +425,7 @@ function AttackInput({
                   { value: 'SAVE', label: 'No damage on success' },
                   { value: 'SAVE HALF', label: 'Half damage on success' },
                 ]}
+                ref={(el) => registerInputRef("saveSelect", el)}
               />
             )}
             <SaveSwitch 
@@ -431,7 +438,9 @@ function AttackInput({
             <Input 
             placeholder="# of attacks"
             value={numValue}
-            onChange={ (e)=>setNumValue(e.target.value.replace(/\D/g, '')) } />
+            onChange={ (e)=>setNumValue(e.target.value.replace(/\D/g, '')) }
+            ref={(el) => registerInputRef("numAttacks", el)}
+            />
           </Space>
           <Space style={{ display: 'flex', justifyContent: 'space-between', width: '28vw' }}>
             <AttackButton
@@ -474,10 +483,12 @@ const AttackCard = forwardRef(function AttackCard(
     attack,
     dprAttacks,
     onDprChange,
+    highlightInput,
     isOverlay
   },
   ref
 ) {
+
   // useSortable for reordering
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: attack.name });
@@ -551,6 +562,13 @@ const AttackCard = forwardRef(function AttackCard(
     }
     setNumValue(attack.times)
     remove()
+    setTimeout(() => {
+      highlightInput("attackName")
+      highlightInput("damageValue")
+      highlightInput("attackValue")
+      highlightInput("saveSelect")
+      highlightInput("numAttacks")
+    }, 0);
   }
 
   // drag handle + title
@@ -677,7 +695,8 @@ function AttackDisplay({
   setSwitchState,
   attacks,
   onDprChange,
-  attackRefs
+  attackRefs,
+  highlightInput
 }) {
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeId, setActiveId] = useState(null);
@@ -720,13 +739,13 @@ function AttackDisplay({
         onDragStart={(event) => {
           handleDragStart(event);
           // clear glow when drag starts
-          const name = event.active?.id;
-          if (!name) return;
-          const node = attackRefs.current[name];
-          const card = node?.querySelector(".attack-card-tight-fit");
-          if (card) {
-            card.classList.remove("glow");
-          }
+          Object.values(attackRefs.current).forEach( (node) => {
+            if (!node) return
+            const card = node?.querySelector(".attack-card-tight-fit");
+            if (card) {
+              card.classList.remove("glow");
+            }
+          })
         }}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -751,6 +770,7 @@ function AttackDisplay({
                 attack={attack}
                 dprAttacks={attacks}
                 onDprChange={onDprChange}
+                highlightInput={highlightInput}
               />
             ))}
           </Flex>
@@ -1182,7 +1202,7 @@ function App() {
   const [switchState, setSwitchState] = useState(false)
 
   const [saveOption, setSaveOption] = useState('SAVE')
-  const attackRefs = useRef({});
+  const attackRefs = useRef({})
   const scrollToAttack = (name) => {
     const node = attackRefs.current[name];
     node.scrollIntoView({
@@ -1197,6 +1217,25 @@ function App() {
     void node.offsetWidth // force reflow
     card.classList.add("glow")
   }
+  const inputRefs = useRef({})
+  function highlightInput(target) {
+    const node = inputRefs.current[target]
+    if (!node) return;
+    const el = target=="saveSelect" 
+              ? document.querySelector(".save-select")?.querySelector(".ant-select-selector")
+              : node.input
+    el?.classList.remove("glow-input"); // reset animation
+    void el?.offsetWidth;               // force reflow
+    el?.classList.add("glow-input");    // reapply
+  }
+  const registerInputRef = (name, el) => {
+    if (el) {
+      inputRefs.current[name] = el;
+    } else {
+      delete inputRefs.current[name]; // cleanup on unmount
+    }
+  };
+
 
   const [lastTestAC, setLastTestAC] = useState('15')
   const [lastGraphColor, setLastGraphColor] = useState('#21b1ceff')
@@ -1255,7 +1294,9 @@ function App() {
                   setSwitchState={setSwitchState}
                   onDprChange={setAttacks}
                   scrollToAttack={scrollToAttack}
-                  highlightAttack={highlightAttack}/>
+                  highlightAttack={highlightAttack}
+                  registerInputRef={registerInputRef}
+                />
               </div>  
               <div className="card-stack" style={{marginTop: 15}}>
                 <AttackDisplay 
@@ -1267,7 +1308,8 @@ function App() {
                   setSwitchState={setSwitchState}
                   attacks={dprAttacks}
                   onDprChange={setAttacks}
-                  attackRefs={attackRefs}/>
+                  attackRefs={attackRefs}
+                  highlightInput={highlightInput}/>
               </div>
             </div>
               <div class='footer' style={{paddingTop: 25}}>

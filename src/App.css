@@ -159,11 +159,7 @@
     box-shadow: 0 0 0px rgba(0, 200, 255, 0);
     border-color: rgba(0, 200, 255, 0);
   }
-  30% {
-    box-shadow: 0 0 12px rgba(0, 200, 255, 0.9);
-    border-color: rgba(0, 200, 255, 0.9);
-  }
-  70% {
+  30%, 70% {
     box-shadow: 0 0 12px rgba(0, 200, 255, 0.9);
     border-color: rgba(0, 200, 255, 0.9);
   }
@@ -181,6 +177,25 @@
 /* Glow state */
 .attack-card-tight-fit.glow {
   animation: glow-border 0.8s ease-in-out;
+}
+
+.glow-input {
+  animation: glow-secondary 0.8s ease-in-out;
+}
+
+@keyframes glow-secondary {
+  0% {
+    box-shadow: 0 0 0px #141414;
+    border-color: #424242;
+  }
+  35%, 65% {
+    box-shadow: 0 0 12px rgba(15, 175, 215, 0.75);
+    border-color: rgba(15, 175, 215, 0.75);
+  }
+  90%, 100% {
+    box-shadow: 0 0 0px #141414;
+    border-color: #424242;
+  }
 }
 
 
