@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { Input, Space, Switch, ConfigProvider, theme, Button, Card, Flex, FloatButton,
             Tooltip, Typography, ColorPicker, Checkbox, Col, Row, Select} from "antd";
 import { CheckOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, HomeOutlined, MenuOutlined, MinusOutlined, PlusOutlined, QuestionCircleOutlined, SaveOutlined } from '@ant-design/icons';
@@ -42,8 +42,6 @@ import { CSS } from "@dnd-kit/utilities";
 
 /* TODO: 
 *   1. PHASE 7: UI Polishing
-        Scroll to position of attack when it is added to itself. (x1+1=2)
-
         Make graph positioning robust to browser.
 
         Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
@@ -136,11 +134,11 @@ function AttackButton({
   toHitError,
   dprAttacks,
   onDprChange,
-  scrollToTop
+  scrollToAttack,
+  highlightAttack
 }) {
 
   const [submitDisabled, setSubmitDisabled] = useState(false)
-
   // Update submitDisabled state if any of the text fields are empty
   useEffect( () => {
     if ( attackName=="" || damageValue=="" || (attackValue=="" && !switchState) || numValue=="" ) {
@@ -150,6 +148,16 @@ function AttackButton({
       setSubmitDisabled(false)
     }
   }, [attackName, damageValue, attackValue, switchState, numValue])
+
+  const lastAddedAttack = useRef(null);
+    useEffect(() => {
+    if (lastAddedAttack.current) {
+      scrollToAttack(lastAddedAttack.current)
+      highlightAttack(lastAddedAttack.current);
+      lastAddedAttack.current = null; // reset
+    }
+  }, [dprAttacks]); // runs after dprAttacks changes
+
 
   const addAttack = () => {
     var isUnique = true;
@@ -166,6 +174,8 @@ function AttackButton({
             : item
           )
         )
+        scrollToAttack(attack.name)
+        highlightAttack(attack.name)
       }
       else if (attack.name==attackName.trim()) {
         isUnique=false;
@@ -201,7 +211,7 @@ function AttackButton({
           ]
         )
       }
-      scrollToTop()
+      lastAddedAttack.current = attackName.trim()
     }
   }
 
@@ -255,7 +265,8 @@ function AttackInput({
   setNumValue,
   setSwitchState,
   onDprChange,
-  scrollToTop
+  scrollToAttack,
+  highlightAttack
 }) {
 
   const [saveType, setSaveType] = useState('SAVE')
@@ -430,7 +441,8 @@ function AttackInput({
               damageError={damageError}
               toHitError={toHitError}
               onDprChange={onDprChange}
-              scrollToTop={scrollToTop}
+              scrollToAttack={scrollToAttack}
+              highlightAttack={highlightAttack}
             />
             <ClearButton 
                 onAttackNameChange={setAttackName}
@@ -447,25 +459,33 @@ function AttackInput({
   )
 }
 
-function AttackCard({
-  setAttackName,
-  setDamageValue,
-  setAttackValue,
-  setSaveOption,
-  setNumValue,
-  setSwitchState,
-  attack,
-  dprAttacks,
-  onDprChange,
-  isOverlay
-}) {
+const AttackCard = forwardRef(function AttackCard(
+  {
+    setAttackName,
+    setDamageValue,
+    setAttackValue,
+    setSaveOption,
+    setNumValue,
+    setSwitchState,
+    attack,
+    dprAttacks,
+    onDprChange,
+    isOverlay
+  },
+  ref
+) {
   // useSortable for reordering
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: attack.name });
 
-  // combine refs from sortable + droppable
+  // merge both refs: sortable + forwarded
   const combinedRef = (node) => {
     setNodeRef(node);
+    if (typeof ref === "function") {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
   };
 
   const outerStyle = ( isOverlay
@@ -562,6 +582,7 @@ function AttackCard({
     <div ref={combinedRef} style={outerStyle} className='attack-card'>
       <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
         <Card
+          className='attack-card-tight-fit'
           size="small"
           title={cardTitle}
           style={{
@@ -641,7 +662,7 @@ function AttackCard({
       </ConfigProvider>
     </div>
   );
-}
+})
 
 function AttackDisplay({
   setAttackName,
@@ -652,7 +673,7 @@ function AttackDisplay({
   setSwitchState,
   attacks,
   onDprChange,
-  scrollRef
+  attackRefs
 }) {
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeId, setActiveId] = useState(null);
@@ -682,7 +703,6 @@ function AttackDisplay({
 
   return (
     <div
-      ref={scrollRef}
       className="scrollable"
       style={{
         overflowY: "auto",
@@ -707,6 +727,7 @@ function AttackDisplay({
             {attacks.map((attack) => (
               <AttackCard
                 key={attack.name}
+                ref={(el) => (attackRefs.current[attack.name] = el)}
                 setAttackName={setAttackName}
                 setDamageValue={setDamageValue}
                 setAttackValue={setAttackValue}
@@ -1147,15 +1168,21 @@ function App() {
   const [switchState, setSwitchState] = useState(false)
 
   const [saveOption, setSaveOption] = useState('SAVE')
-  const containerRef = useRef(null);
-  const scrollToTop = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth", // or "auto"
-      });
-    }
+  const attackRefs = useRef({});
+  const scrollToAttack = (name) => {
+    const node = attackRefs.current[name];
+    node.scrollIntoView({
+      behavior: "smooth", // or "auto"
+      block: "center",   // or "center"
+    });
   };
+  function highlightAttack(name) {
+    const node = attackRefs.current[name];
+    const card = node.querySelector(".attack-card-tight-fit"); // reach in and grab the actual Card component
+    card.classList.remove("glow")
+    card.classList.add("glow");
+    setTimeout(() => card.classList.remove("glow"), 1000);
+  }
 
   const [lastTestAC, setLastTestAC] = useState('15')
   const [lastGraphColor, setLastGraphColor] = useState('#21b1ceff')
@@ -1213,7 +1240,8 @@ function App() {
                   setNumValue={setNumValue}
                   setSwitchState={setSwitchState}
                   onDprChange={setAttacks}
-                  scrollToTop={scrollToTop}/>
+                  scrollToAttack={scrollToAttack}
+                  highlightAttack={highlightAttack}/>
               </div>  
               <div className="card-stack" style={{marginTop: 15}}>
                 <AttackDisplay 
@@ -1225,7 +1253,7 @@ function App() {
                   setSwitchState={setSwitchState}
                   attacks={dprAttacks}
                   onDprChange={setAttacks}
-                  scrollRef={containerRef}/>
+                  attackRefs={attackRefs}/>
               </div>
             </div>
               <div class='footer' style={{paddingTop: 25}}>

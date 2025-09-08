@@ -93,15 +93,6 @@ button:focus-visible {
   color: #fff !important;
 }
 
-/* Make Scrollbar always visible
-.scrollable::-webkit-scrollbar {
-  width: 6px;                 
-}
-.scrollable::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 6px;
-}*/
-
 @media (prefers-color-scheme: light) {
   :root {
     color: #141414;
