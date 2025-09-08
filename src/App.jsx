@@ -42,6 +42,10 @@ import { CSS } from "@dnd-kit/utilities";
 
 /* TODO: 
 *   1. PHASE 7: UI Polishing
+        Fix highlight on reorder (it's not supposed to do that). 
+            useState instead of useRef for lastAddedAttack???
+        Highlight the input boxes when we bring up an attack to edit.
+
         Make graph positioning robust to browser.
 
         Fonts for graphs. Also density of ticks for higher damage. Labels get too close to number when # of digits increases.
@@ -149,14 +153,14 @@ function AttackButton({
     }
   }, [attackName, damageValue, attackValue, switchState, numValue])
 
-  const lastAddedAttack = useRef(null);
-    useEffect(() => {
-    if (lastAddedAttack.current) {
-      scrollToAttack(lastAddedAttack.current)
-      highlightAttack(lastAddedAttack.current);
-      lastAddedAttack.current = null; // reset
+  const [lastAddedAttack, setLastAddedAttack] = useState(null);
+  useEffect(() => {
+    if (lastAddedAttack != null) {
+      scrollToAttack(lastAddedAttack)
+      highlightAttack(lastAddedAttack);
+      setLastAddedAttack(null); // reset
     }
-  }, [dprAttacks]); // runs after dprAttacks changes
+  }, [dprAttacks]);
 
 
   const addAttack = () => {
@@ -211,7 +215,7 @@ function AttackButton({
           ]
         )
       }
-      lastAddedAttack.current = attackName.trim()
+      setLastAddedAttack(attackName.trim())
     }
   }
 
@@ -713,7 +717,17 @@ function AttackDisplay({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
+        onDragStart={(event) => {
+          handleDragStart(event);
+          // clear glow when drag starts
+          const name = event.active?.id;
+          if (!name) return;
+          const node = attackRefs.current[name];
+          const card = node?.querySelector(".attack-card-tight-fit");
+          if (card) {
+            card.classList.remove("glow");
+          }
+        }}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
         modifiers={[restrictToFirstScrollableAncestor]}
@@ -1173,15 +1187,15 @@ function App() {
     const node = attackRefs.current[name];
     node.scrollIntoView({
       behavior: "smooth", // or "auto"
-      block: "center",   // or "center"
+      block: "center",   // or "nearest"
     });
   };
   function highlightAttack(name) {
     const node = attackRefs.current[name];
     const card = node.querySelector(".attack-card-tight-fit"); // reach in and grab the actual Card component
     card.classList.remove("glow")
-    card.classList.add("glow");
-    setTimeout(() => card.classList.remove("glow"), 1000);
+    void node.offsetWidth // force reflow
+    card.classList.add("glow")
   }
 
   const [lastTestAC, setLastTestAC] = useState('15')

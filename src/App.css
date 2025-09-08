@@ -180,7 +180,7 @@
 
 /* Glow state */
 .attack-card-tight-fit.glow {
-  animation: glow-border 1s ease-in-out;
+  animation: glow-border 0.8s ease-in-out;
 }
 
 
