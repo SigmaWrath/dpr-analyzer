@@ -1,5 +1,4 @@
 import time
-from crypt import methods
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -11,9 +10,11 @@ CORS(app)
 
 def unpack_json(data):
     build = Analyzer(data["title"])
+    is_crit = data["isCritFail"]
     for i in range(len(data["attacks"])):
         json_attack = data["attacks"][i]
-        py_attack = Attack(name=json_attack["name"], damagef=json_attack["damagef"], toHitf=json_attack["hitf"])
+        py_attack = Attack(name=json_attack["name"], damagef=json_attack["damagef"],
+                           toHitf=json_attack["hitf"], is_crit=is_crit)
         build.add(py_attack, int(json_attack["times"]))
     return build
 

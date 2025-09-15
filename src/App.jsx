@@ -50,7 +50,7 @@ import { CSS } from "@dnd-kit/utilities";
           Probabilities in %?
     2. PHASE 8: Add remaining formula features to python dpr_core
           Final new features before wrap-up:
-            2. Crit/fail
+            2. Crit/fail —— in progress
             3. Decide on what we're doing with the bottom bar 
                 (just removing Graph Color? are we replacing it? don't have to)
     3. PHASE 9: Convert dpr_core into JS (https://www.gitloop.com/tool/python-to-javascript)
@@ -812,7 +812,7 @@ function AnalyzerConfiguration({
   const [maxAC, setMaxAC] = useState('25')
   const [testAC, setTestAC] = useState('15')
   const [graphColor, setGraphColor] = useState('#21b1ceff') //21b1cef2
-  const [isCrit, setIsCrit] = useState(true)
+  const [isCrit, setIsCrit] = useState(false)
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -860,7 +860,7 @@ function AnalyzerConfiguration({
     setIsLoading(false)
   };
 
-  const toggleMisses = () => {
+  const toggleCrits = () => {
     setIsCrit(!isCrit)
   }
 
@@ -922,7 +922,7 @@ function AnalyzerConfiguration({
             setGraphColor(c.toHexString());
           }}
         />
-        <Checkbox onChange={toggleMisses}>Evaluate Crit/Fail</Checkbox>
+        <Checkbox onChange={toggleCrits}>Evaluate Crit/Fail</Checkbox>
         <Button 
           color='green' 
           variant='solid' 

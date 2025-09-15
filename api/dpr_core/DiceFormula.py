@@ -7,8 +7,9 @@ from .probability_utils import add_dists
 
 class DiceFormula:
 
-    def __init__(self, formula):
+    def __init__(self, formula, is_crit_hit=False):
         self.formula = formula
+        self.is_crit_hit = is_crit_hit
 
         dice_dict = defaultdict(int)
         constant = 0
@@ -54,6 +55,10 @@ class DiceFormula:
         for die in self.dice_dict.keys():
             avg_result += Die(die).avg()*self.dice_dict[die]
 
+        # Handle crit case
+        if self.is_crit_hit:
+            return 2*avg_result+self.constant
+
         return avg_result+self.constant
 
     # Return the probability distribution for the results of dice formula
@@ -73,8 +78,42 @@ class DiceFormula:
         for i in range(len(dice)-1):
             result = add_dists(result, Die(dice[i+1]).distribution())
 
+        # Handle crit case
+        if self.is_crit_hit:
+            return add_dists(add_dists(result, result), self.constant)
+
         # Add the constant to the distribution and return the result
         return add_dists(result, self.constant)
+
+    def enc_frequencies(self):
+        # Handle the case for no dice in the formula
+        if len(self.dice_dict)==0:
+            return {self.constant:1.0}
+
+        # Flatten out the dice dict into an array
+        dice = []
+        for die in self.dice_dict.keys():
+            for i in range(self.dice_dict[die]):
+                dice.append(die)
+
+        # Add all the dice distributions together
+        result = Die(dice[0]).distribution()
+        has_twentied = False
+        if '20' in str(dice[0]):
+            result.pop(1)
+            result.pop(20)
+            has_twentied = True
+        for i in range(len(dice)-1):
+            next_die = Die(dice[i+1]).distribution()
+            if ('20' in str(dice[i+1])) and (not has_twentied):
+                next_die.pop(1)
+                next_die.pop(20)
+                has_twentied = True
+            result = add_dists(result, next_die)
+
+        # Add the constant to the distribution and return the result
+        return add_dists(result, self.constant)
+
 
     # Graph the probability distribution of the dice formula
     def graph(self, color='#1f77b4'):

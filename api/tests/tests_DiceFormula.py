@@ -63,5 +63,20 @@ class MyTestCase(unittest.TestCase):
         graph_dist(frequencies=result, x_label='2d6 Savage')
         graph_dist(d12_savage.distribution(), x_label='1d12 Savage')
 
+    def test_crit(self):
+        f = DiceFormula("d6+1")
+        graph_dist(f.frequencies(), x_label="d6+1")
+        print(f.avg_roll())
+
+        cf = DiceFormula("d6+1", is_crit_hit=True)
+        graph_dist(cf.frequencies(), x_label="CRIT on d6+1")
+        print(cf.avg_roll())
+
+    def test_enc(self):
+        f = DiceFormula("Ad20+5")
+        print()
+        print(f.enc_frequencies())
+        print(f.frequencies())
+
 if __name__ == '__main__':
     unittest.main()
