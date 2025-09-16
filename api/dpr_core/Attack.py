@@ -24,8 +24,11 @@ class Attack:
                     if '20' in term:
                         d20 = term.strip()
                         break
-                self.crit_hit_chance = DiceFormula(d20).frequencies()[20]
-                self.crit_hitf = DiceFormula(damagef, is_crit_hit=True)
+                if d20==None:
+                    self.is_crit=False
+                else:
+                    self.crit_hit_chance = DiceFormula(d20).frequencies()[20]
+                    self.crit_hitf = DiceFormula(damagef, is_crit_hit=True)
 
         # If we make a saving throw,
         #   we assume we hit 50% of the time
